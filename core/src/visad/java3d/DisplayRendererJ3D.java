@@ -1232,7 +1232,7 @@ public abstract class DisplayRendererJ3D
       if (r.getEnabled()) {
         r.setLastMouseModifiers(mouseModifiers);
         float d = r.checkClose(ray.position, ray.vector);
-        if (d < distance) {
+        if (d <= distance) {
           distance = d;
           renderer = r;
         }

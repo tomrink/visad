@@ -286,6 +286,10 @@ public abstract class DataRenderer extends Object implements Cloneable {
       // test for changed Controls that require doTransform
 
       boolean do_prepare = Links[i].checkTicks() || !feasible[i] || go;
+      boolean onlyTransformForThis = display.getOnlyTransformForThis();
+      if (onlyTransformForThis) { //TDR
+        do_prepare = Links[i].checkTicks() || !feasible[i];
+      }
       if (feasible[i] && !do_prepare) {
         // check if this Data includes any changed Controls
         Enumeration maps = Links[i].getSelectedMapVector().elements();

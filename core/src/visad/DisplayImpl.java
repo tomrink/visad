@@ -150,6 +150,8 @@ public abstract class DisplayImpl extends ActionImpl implements LocalDisplay {
   /** set to re-display all linked Data */
   private boolean redisplay_all = false;
 
+  boolean onlyTransformForThis = false;
+
 
   /**
    * length of ValueArray of distinct DisplayRealType values;
@@ -1913,6 +1915,7 @@ System.out.println("initialize = " + initialize + " go = " + go +
           ScalarMap map = (ScalarMap)maps.nextElement();
           map.resetTicks();
         }
+        setOnlyTransformForThis(false);
       } // end synchronized (mapslock)
     }
     finally {
@@ -3247,6 +3250,14 @@ System.out.println("initialize = " + initialize + " go = " + go +
     if (displayActivity != null) {
       displayActivity.updateBusyStatus();
     }
+  }
+
+  public void setOnlyTransformForThis(boolean flag) {
+    onlyTransformForThis = flag;
+  }
+
+  public boolean getOnlyTransformForThis() {
+    return onlyTransformForThis;
   }
 
   /** Class for listening to component events */

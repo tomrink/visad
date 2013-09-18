@@ -34,7 +34,6 @@ import java.lang.reflect.Method;
 import java.rmi.RemoteException;
 import java.util.Enumeration;
 import java.util.Vector;
-import java.util.ArrayList;
 
 import javax.media.j3d.Appearance;
 import javax.media.j3d.Background;
@@ -893,6 +892,12 @@ public abstract class DisplayRendererJ3D
     }
   }
 
+  /**
+   * Dynamically reorder DataRenderer position in the DisplayRenderer OrderedGroup scene
+   * @param renderers  The renderers to reorder.  Must match renderers in the Display.
+   * @param order      The new order in the scene.
+   * @throws VisADException  Renderers must match those in Display.
+   */
   public synchronized void reorderRenderers(DataRenderer[] renderers, int[] order) throws VisADException {
     if (renderers.length != priorityOrderedList.size()) {
       throw new VisADException("number of renderers must match number in Display");
@@ -908,6 +913,7 @@ public abstract class DisplayRendererJ3D
     non_direct.setChildIndexOrder(chldIdxOrder);
   }
 
+  /** resets the indirection specified in reorderRenderers */
   public synchronized void resetRendererOrder() {
     int numRenderers = priorityOrderedList.size();
     int[] chldIdxOrder = new int[numRenderers];

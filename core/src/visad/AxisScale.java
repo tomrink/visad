@@ -92,6 +92,7 @@ public class AxisScale implements java.io.Serializable
   private int tickOrient = PRIMARY;
   private static final double TICKSIZE = .5;  // major ticks are 1/2 char ht.
   private NumberFormat labelFormat = null;
+  private boolean oppSideTitle2D = false;
   
   /** Is the label angled away from the axis or is it "flat"*/
   private boolean labelRelief = true;
@@ -942,6 +943,18 @@ public class AxisScale implements java.io.Serializable
            dist = (side == PRIMARY)
              ? 2.5 + TICKSIZE
              : -(1.5 + TICKSIZE - .05);
+           
+           if (oppSideTitle2D) {
+             base = new double[] {scale, 0.0, 0.0};
+             up = new double[] {0.0, scale, scale};
+             startp = new double[] {one * xmax,
+                                    ymax + ((offset - 1.0) + line),
+                                    zmin - ((offset - 1.0) + line)};
+             startn = new double[] {one * xmin,
+                                    ymax + ((offset - 1.0) + line),
+                                    zmin - ((offset - 1.0) + line)};
+             dist = -0.5;
+           }
         }
         else if (myAxis == Y_AXIS) {
            base = new double[] {0.0, scale, 0.0};
@@ -949,6 +962,18 @@ public class AxisScale implements java.io.Serializable
            dist = (side == PRIMARY)
              ? -(.5 + TICKSIZE + maximumYAxisTickLabelSize)
              : (.5 + TICKSIZE + maximumYAxisTickLabelSize) ;
+           
+           if (oppSideTitle2D) {
+             base = new double[] {0.0, scale, 0.0};
+             up = new double[] {-scale, 0.0, scale};
+             startp = new double[] {xmax + ((offset - 1.0) + line),
+                                   one * ymax,
+                                   zmin - ((offset - 1.0) + line)};
+             startn = new double[] {xmax + ((offset - 1.0) + line),
+                                   one * ymin,
+                                   zmin - ((offset - 1.0) + line)};
+             dist = 0.5*maximumYAxisTickLabelSize;
+           }
         }
       }
       for (int i=0; i<3; i++) {
@@ -1752,5 +1777,9 @@ public class AxisScale implements java.io.Serializable
   public void setLabelRelief(boolean labelRelief) {
     this.labelRelief = labelRelief;
   }
-
+  
+  public void setOppSideTitle2D(boolean yesno) {
+    this.oppSideTitle2D = yesno;
+  }
+  
 }

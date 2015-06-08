@@ -123,7 +123,9 @@ public abstract class DisplayRendererJ3D
 
   private Object not_destroyed = new Object();
 
-  // for screen locked
+  /** For screen locked. The Display ProjectionControl does not update
+      the locked_trans on changeControl events. Locked_trans can be updated
+      manually by the application. See updateLockedTrans */
   private OrderedGroup screen_locked = null;
   private TransformGroup locked_trans = null;
 
@@ -873,7 +875,7 @@ public abstract class DisplayRendererJ3D
 
     int index = 0;
     for (int k=0; k<priorityOrderedList.size(); k++) {
-      if (renderOrder < ((RendererJ3D)priorityOrderedList.get(k)).renderOrderPriority) {
+      if (renderOrder < ((RendererJ3D)priorityOrderedList.get(k)).getRenderOrderPriority()) {
         index = k;
         break;
       }
@@ -928,7 +930,6 @@ public abstract class DisplayRendererJ3D
     screen_locked.addChild(group);
   }
 
-  //- TDR, Hydra stuff
   public void addLockedSceneGraphComponent(Group group, boolean initWithProj) {
     if (not_destroyed == null || screen_locked == null) return;
     if (initWithProj) {
@@ -937,7 +938,7 @@ public abstract class DisplayRendererJ3D
     }
     screen_locked.addChild(group);
   }
-                                                                                                                                         
+  
   public void updateLockedTrans(double[] matrix) {
     if (locked_trans != null) {
       locked_trans.setTransform(new Transform3D(matrix));
@@ -945,10 +946,17 @@ public abstract class DisplayRendererJ3D
   }
 
   public void addDirectManipulationSceneGraphComponent(Group group,
-                         DirectManipulationRendererJ3D renderer, double renderOrder) {
+                         DirectManipulationRendererJ3D renderer) {
     if (not_destroyed == null) return;
     // WLH 13 March 2000
     // direct.addChild(group);
+    non_direct.addChild(group);
+    directs.addElement(renderer);
+  }
+
+  public void addDirectManipulationSceneGraphComponent(Group group,
+                         DirectManipulationRendererJ3D renderer, double renderOrder) {
+    if (not_destroyed == null) return;
 
     addToSceneGraph(group, renderer, renderOrder);
     directs.addElement(renderer);

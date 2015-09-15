@@ -59,7 +59,7 @@ public abstract class RendererJ3D extends DataRenderer {
   boolean[] switchFlags = {false, false, false};
   boolean[] branchNonEmpty = {false, false, false};
 
-  private double renderOrderPriority = 1000.0;
+  protected double renderOrderPriority = 1000.0;
   private int orderedGroupIndex = 0;
 
   public RendererJ3D() {
@@ -91,9 +91,17 @@ public abstract class RendererJ3D extends DataRenderer {
     }
     
     Vector rendVec = d.getRendererVector();
-    double[] priority = new double[rendVec.size()];
-    for (int k=0; k<priority.length; k++) {
-      priority[k] = ((RendererJ3D) rendVec.get(k)).getRenderOrderPriority();
+    int cnt = 0;
+    for (int k=0; k<rendVec.size(); k++) {
+      if ( ((RendererJ3D)rendVec.get(k)).getRenderOrderPriority() >= 0 ) cnt++;
+    }
+    double[] priority = new double[cnt];
+    cnt = 0;
+    for (int k=0; k<rendVec.size(); k++) {
+      double p = ((RendererJ3D) rendVec.get(k)).getRenderOrderPriority();
+      if (p >= 0) {
+        priority[cnt++] = p;
+      }
     }
     java.util.Arrays.sort(priority);
     int index = 0;

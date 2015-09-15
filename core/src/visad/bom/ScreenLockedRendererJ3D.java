@@ -83,10 +83,18 @@ public class ScreenLockedRendererJ3D extends DefaultRendererJ3D
 
   public void addSwitch(DisplayRendererJ3D displayRenderer,
                          BranchGroup branch) {
-    displayRenderer.addLockedSceneGraphComponent(branch, initWithProj);
+    if (initWithProj) {
+      displayRenderer.addLockedSceneGraphComponent(branch, initWithProj);
+    }
+    else {
+      displayRenderer.addLockedSceneGraphComponent(branch);
+    }
   }
   
-
+  public double getRenderOrderPriority() {
+    return -1;
+  }
+  
   /**
    * Used for testing.
    * Creates a display with a red square and labels at each

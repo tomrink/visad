@@ -59,7 +59,7 @@ public abstract class RendererJ3D extends DataRenderer {
   boolean[] switchFlags = {false, false, false};
   boolean[] branchNonEmpty = {false, false, false};
 
-  protected double renderOrderPriority = 1000.0;
+  protected double renderOrderPriority = 10.0;
   private int orderedGroupIndex = 0;
 
   public RendererJ3D() {
@@ -80,7 +80,6 @@ public abstract class RendererJ3D extends DataRenderer {
     setDisplayRenderer(d.getDisplayRenderer());
     setLinks(links);
 
-    renderOrderPriority = Display.RenderOrderPriority.getDefaultValue();
     Vector constMaps = links[0].getConstantMaps();
     for (int k=0; k<constMaps.size(); k++) {
       ConstantMap cmap = (ConstantMap) constMaps.get(k);

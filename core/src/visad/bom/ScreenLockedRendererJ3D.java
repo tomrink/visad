@@ -74,6 +74,7 @@ public class ScreenLockedRendererJ3D extends DefaultRendererJ3D
   public ScreenLockedRendererJ3D()
   {
     super();
+    renderOrderPriority = -1;
   }
 
   public ScreenLockedRendererJ3D(boolean initWithProj) {
@@ -89,10 +90,6 @@ public class ScreenLockedRendererJ3D extends DefaultRendererJ3D
     else {
       displayRenderer.addLockedSceneGraphComponent(branch);
     }
-  }
-  
-  public double getRenderOrderPriority() {
-    return -1;
   }
   
   /**

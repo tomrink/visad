@@ -564,6 +564,7 @@ public abstract class DisplayRendererJ3D
   public BranchGroup createBasicSceneGraph(View v, TransformGroup vpt,
          VisADCanvasJ3D c, MouseBehaviorJ3D m, ColoringAttributes bc,
          ColoringAttributes cc) {
+    System.setProperty("sun.awt.noerasebackground", "true");
     if (root != null) return root;
     if (not_destroyed == null) return null;
 
@@ -742,6 +743,7 @@ public abstract class DisplayRendererJ3D
     catch (NoSuchFieldException e) {
     }
 
+    getView().setMinimumFrameCycleTime(40);
     return root;
   }
 

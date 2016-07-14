@@ -90,6 +90,79 @@ public class LambertAzimuthalEqualArea extends CoordinateSystem {
     this.sin_lat_o = Math.sin( lat_center  );
     this.cos_lat_o = Math.cos( lat_center  );
   }
+  
+  public float[][] toReference(float[][] tuples) throws VisADException {
+     double Rh;
+     double x;
+     double y;
+     double z;               // Great circle dist from proj center to given point
+     double sin_z;           // Sine of z
+     double cos_z;           // Cosine of z
+     double temp;            // Re-used temporary variable
+     double lon;
+     double lat;
+     double[] dum_1 = new double[1];
+     double[] dum_2 = new double[1];
+     double[] dum = new double[1];
+
+     int n_tuples = tuples[0].length;
+     int tuple_dim = tuples.length;
+
+     if ( tuple_dim != 2) {
+       throw new VisADException("LambertAzimuthalEqualArea: tuple dim != 2");
+     }
+
+     float t_tuples[][] = new float[2][n_tuples];
+
+     for ( int ii = 0; ii < n_tuples; ii++ ) {
+
+       x = tuples[0][ii] - false_easting;
+       y = tuples[1][ii] - false_northing;
+       Rh = Math.sqrt(x * x + y * y);
+       temp = Rh / (2.0 * R);
+       if (temp > 1)
+       {
+         // p_error("Input data error", "lamaz-inverse");
+       }
+       z = 2.0 * GctpFunction.asinz(temp);
+       dum[0] = z;
+       GctpFunction.sincos(dum, dum_1, dum_2);
+       sin_z = dum_1[0];
+       cos_z = dum_2[0];
+       lon = lon_center;
+       if ( Math.abs(Rh) > GctpFunction.EPSLN )
+       {
+         lat = GctpFunction.asinz(sin_lat_o * cos_z + cos_lat_o * sin_z * y / Rh);
+         temp = Math.abs(lat_center) - GctpFunction.HALF_PI;
+         if (Math.abs(temp) > GctpFunction.EPSLN)
+         {
+           temp = cos_z - sin_lat_o * Math.sin(lat);
+           if(temp!=0.0) {
+             lon = GctpFunction.adjust_lon(lon_center+Math.atan2(x*sin_z*cos_lat_o,temp*Rh));
+           }
+         }
+         else if (lat_center < 0.0) {
+           lon = GctpFunction.adjust_lon(lon_center - Math.atan2(-x, y));
+         }
+         else {
+           lon = GctpFunction.adjust_lon(lon_center + Math.atan2(x, -y));
+         }
+       }
+       else {
+         lat = lat_center;
+       }
+
+       t_tuples[0][ii] = (float)lon;
+       t_tuples[1][ii] = (float)lat;
+     }
+     if (reference_units[0].equals(CommonUnit.degree)) {
+       for (int i=0; i<n_tuples; i++) {
+         t_tuples[0][i] *= Data.RADIANS_TO_DEGREES;
+         t_tuples[1][i] *= Data.RADIANS_TO_DEGREES;
+       }
+     }
+     return t_tuples;
+  }
 
   public double[][] toReference(double[][] tuples) throws VisADException {
 
@@ -159,6 +232,65 @@ public class LambertAzimuthalEqualArea extends CoordinateSystem {
      return 
        Unit.convertTuple(t_tuples, default_reference_units, reference_units);
   }
+  
+  public float[][] fromReference(float[][] tuples) throws VisADException {
+     int n_tuples = tuples[0].length;
+     int tuple_dim = tuples.length;
+     double ksp;
+     double g;
+
+     if ( tuple_dim != 2) {
+        throw new VisADException("LambertAzimuthalEqualArea: tuple dim != 2");
+     } 
+     
+     double[][] dblTuples = new double[2][tuples[0].length];
+     if (reference_units[0].equals(CommonUnit.degree)) {
+     for (int i=0; i<tuples[0].length; i++) {
+        dblTuples[0][i] = tuples[0][i]*Data.DEGREES_TO_RADIANS;
+        dblTuples[1][i] = tuples[1][i]*Data.DEGREES_TO_RADIANS;
+     }
+     }
+     else {
+        System.arraycopy(tuples[0], 0, dblTuples[0], 0, n_tuples);
+        System.arraycopy(tuples[0], 0, dblTuples[0], 0, n_tuples);
+     }
+     
+     float[][] t_tuples = new float[2][n_tuples];
+     double[] delta_lon = new double[n_tuples];
+     double[] sin_lat = new double[n_tuples];
+     double[] cos_lat = new double[n_tuples];
+     double[] sin_delta_lon = new double[n_tuples];
+     double[] cos_delta_lon = new double[n_tuples];
+
+     for ( int ii = 0; ii < n_tuples; ii++ ) {
+        delta_lon[ii] = dblTuples[0][ii] - lon_center;
+     }
+
+     GctpFunction.adjust_lon( delta_lon );
+
+     GctpFunction.sincos( dblTuples[1], sin_lat, cos_lat );
+     GctpFunction.sincos( delta_lon, sin_delta_lon, cos_delta_lon );
+
+
+     for ( int ii = 0; ii < n_tuples; ii++ ) {
+
+       g = sin_lat_o * sin_lat[ii] + cos_lat_o * cos_lat[ii] * cos_delta_lon[ii];
+       if ( g == -1 ) {
+          //throw new VisADException( "Point projects to a circle of radius = "+(2.*R) );
+          t_tuples[0][ii] = Float.NaN;
+          t_tuples[1][ii] = Float.NaN;
+       }
+
+       ksp = R * Math.sqrt(2.0 / (1.0 + g));
+
+       t_tuples[0][ii] = (float) (ksp * cos_lat[ii] * sin_delta_lon[ii] + false_easting);
+       t_tuples[1][ii] = (float) (ksp * (cos_lat_o * sin_lat[ii] -
+                         sin_lat_o * cos_lat[ii] * cos_delta_lon[ii]) +
+                         false_northing);
+     }     
+     
+     return t_tuples;
+  }
 
   public double[][] fromReference(double[][] tuples) throws VisADException {
 
@@ -171,8 +303,16 @@ public class LambertAzimuthalEqualArea extends CoordinateSystem {
         throw new VisADException("LambertAzimuthalEqualArea: tuple dim != 2");
      }
 
-     tuples =
-       Unit.convertTuple(tuples, reference_units, default_reference_units);
+     
+     if (reference_units[0].equals(CommonUnit.degree)) {
+       double[][] newTuples = new double[2][tuples[0].length];
+       for (int i=0; i<tuples[0].length; i++) {
+         newTuples[0][i] = tuples[0][i]*Data.DEGREES_TO_RADIANS;
+         newTuples[1][i] = tuples[1][i]*Data.DEGREES_TO_RADIANS;
+       }
+       tuples = newTuples;
+     }
+     
 
      double t_tuples[][] = new double[2][n_tuples];
      double[] delta_lon = new double[n_tuples];
@@ -207,13 +347,6 @@ public class LambertAzimuthalEqualArea extends CoordinateSystem {
                          sin_lat_o * cos_lat[ii] * cos_delta_lon[ii]) +
                          false_northing;
      }
-
-
-     delta_lon = null;
-     sin_lat = null;
-     cos_lat = null;
-     sin_delta_lon = null;
-     cos_delta_lon = null;
 
      return t_tuples;
   }

@@ -37,6 +37,9 @@ import visad.*;
 public abstract class MapProjection extends NavigatedCoordinateSystem
 {
 
+   private boolean flipX = false;
+   private boolean flipY = false;
+   
   /**
    * Constructs from the type of the reference coordinate system and 
    * units for values in this coordinate system. The reference coordinate
@@ -60,12 +63,43 @@ public abstract class MapProjection extends NavigatedCoordinateSystem
   public MapProjection(RealTupleType reference, Unit[] units)
       throws VisADException
   {
+     this(reference, units, false, false);
+  }
+  
+  /**
+   * Constructs from the type of the reference coordinate system and 
+   * units for values in this coordinate system. The reference coordinate
+   * system must contain RealType.Latitude and RealType.Longitude only.
+   *
+   * @param reference  The type of the reference coordinate system. The
+   *                   reference must contain RealType.Latitude and
+   *                   RealType.Longitude.  Values in the reference 
+   *                   coordinate system shall be in units of 
+   *                   reference.getDefaultUnits() unless specified 
+   *                   otherwise.
+   * @param units      The default units for this coordinate system. 
+   *                   Numeric values in this coordinate system shall be 
+   *                   in units of units unless specified otherwise. 
+   *                   May be null or an array of null-s.
+   * @param flipX/Y    Manually invert North-South for East-West w.r.t Y,X.
+   *                   Default is false.
+   * @exception VisADException  Couldn't create necessary VisAD object or
+   *                            reference does not contain RealType.Latitude
+   *                            and/or RealType.Longitude or the reference
+   *                            dimension is greater than 2.
+   */  
+  public MapProjection(RealTupleType reference, Unit[] units, boolean flipX, boolean flipY)
+      throws VisADException
+  {
     super(reference, units);
     if ( !(reference.equals(RealTupleType.LatitudeLongitudeTuple) ||
            reference.equals(RealTupleType.SpatialEarth2DTuple)))
       throw new CoordinateSystemException(
         "MapProjection: Reference must be LatitudeLongitudeTuple or " +
         "SpatialEarth2DTuple");
+    
+    this.flipX = flipX;
+    this.flipY = flipY;
   }
 
   /**
@@ -160,7 +194,14 @@ public abstract class MapProjection extends NavigatedCoordinateSystem
      } catch (java.rmi.RemoteException re) {} // can't happen
      return llp;
   }
-
+  
+  public boolean getFlipX() {
+     return flipX;
+  }
+  
+  public boolean getFlipY() {
+     return flipY;
+  }
   /**
    * Print out a string representation of this MapProjection
    */
@@ -172,6 +213,8 @@ public abstract class MapProjection extends NavigatedCoordinateSystem
     buf.append("\n");
     buf.append("  DefaultMapArea = ");
     buf.append(getDefaultMapArea());
+    buf.append("flipX: "+flipX);
+    buf.append("flipY: "+flipY);
     return buf.toString();
   }
 }

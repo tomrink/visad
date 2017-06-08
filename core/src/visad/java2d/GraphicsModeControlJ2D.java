@@ -4,7 +4,7 @@
 
 /*
 VisAD system for interactive analysis and visualization of numerical
-data.  Copyright (C) 1996 - 2015 Bill Hibbard, Curtis Rueden, Tom
+data.  Copyright (C) 1996 - 2017 Bill Hibbard, Curtis Rueden, Tom
 Rink, Dave Glowacki, Steve Emmerson, Tom Whittaker, Don Murray, and
 Tommy Jasmin.
 
@@ -648,7 +648,7 @@ public class GraphicsModeControlJ2D extends GraphicsModeControl {
   public int getTexture3DMode() {
     return texture3DMode;
   }
-
+  
   public Object clone() {
     GraphicsModeControlJ2D mode =
       new GraphicsModeControlJ2D(getDisplay());

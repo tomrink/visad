@@ -4,7 +4,7 @@
 
 /*
 VisAD system for interactive analysis and visualization of numerical
-data.  Copyright (C) 1996 - 2011 Bill Hibbard, Curtis Rueden, Tom
+data.  Copyright (C) 1996 - 2017 Bill Hibbard, Curtis Rueden, Tom
 Rink, Dave Glowacki, Steve Emmerson, Tom Whittaker, Don Murray, and
 Tommy Jasmin.
 
@@ -47,24 +47,61 @@ public class TrajectoryParams {
       this.w2 = w2;
     }
   }
-
+  
+  public static final int LINE = 0;
+  public static final int RIBBON = 1;
+  public static final int CYLINDER = 2;
+  public static final int DEFORM_RIBBON = 3;
+  public static final int POINT = 4;
 
   double trajVisibilityTimeWindow = 86400.0;
   double trajRefreshInterval = 86400.0;
   int numIntrpPts = 6;
   int startSkip = 2;
   SmoothParams smoothParams = SmoothParams.MEDIUM;
+  boolean forward = true;
   int direction = 1;  //1: forward, -1: backward
   boolean doIntrp = true;
   float markerSize = 1f;
   boolean markerEnabled = false;
   boolean manualIntrpPts = false;
+  boolean autoSizeMarker = true;
+  boolean cachingEnabled = true;
+  
+  int trajForm = LINE;
+  float cylWidth = 0.00014f;
+  float ribbonWidthFac = 1f;
+  int zStart = 0;
+  int zStartSkip = 0;
 
   // these are endPoints if direction is backward
   float[][] startPoints = null;
-  RealTupleType startType = null;
+  RealTupleType startType = Display.DisplaySpatialCartesianTuple;
 
   public TrajectoryParams() {
+  }
+  
+  public TrajectoryParams(TrajectoryParams params) {
+    this.trajVisibilityTimeWindow = params.getTrajVisibilityTimeWindow();
+    this.trajRefreshInterval = params.getTrajRefreshInterval();
+    this.numIntrpPts = params.getNumIntrpPts();
+    this.startSkip = params.getStartSkip();
+    this.smoothParams = params.getSmoothParams();
+    this.forward = params.getDirectionFlag();
+    this.direction = params.getDirection();
+    this.doIntrp = params.getDoIntrp();
+    this.markerSize = params.getMarkerSize();
+    this.markerEnabled = params.getMarkerEnabled();
+    this.manualIntrpPts = params.getManualIntrpPts();
+    this.startPoints = params.getStartPoints();
+    this.startType = params.getStartType();
+    this.autoSizeMarker = params.getAutoSizeMarker();
+    this.cachingEnabled = params.getCachingEnabled();
+    this.trajForm = params.getTrajectoryForm();
+    this.cylWidth = params.getCylinderWidth();
+    this.ribbonWidthFac = params.getRibbonWidthFactor();
+    this.zStart = params.getZStartIndex();
+    this.zStartSkip = params.getZStartSkip();
   }
 
   public TrajectoryParams(double trajVisibilityTimeWindow, double trajRefreshInterval, int numIntrpPts, int startSkip, SmoothParams smoothParams) {
@@ -116,7 +153,21 @@ public class TrajectoryParams {
   public void setTrajRefreshInterval(double trajRefreshInterval) {
     this.trajRefreshInterval = trajRefreshInterval;
   }
-
+  
+  public void setDirectionFlag(boolean forward) {
+     this.forward = forward;
+     if (forward) {
+        this.direction = 1;
+     }
+     else {
+        this.direction = -1;
+     }
+  }
+  
+  public boolean getDirectionFlag() {
+     return forward;
+  }
+  
   public void setDoIntrp(boolean yesno) {
     this.doIntrp = yesno;
   }
@@ -124,6 +175,18 @@ public class TrajectoryParams {
   public void setNumIntrpPts(int numIntrpPts) {
     this.numIntrpPts = numIntrpPts;
     this.manualIntrpPts = true;
+  }
+  
+  public void setStartSkip(int skip) {
+    this.startSkip = skip;
+  }
+  
+  public void setZStartSkip(int skip) {
+     this.zStartSkip = skip;
+  }
+  
+  public void setZStartIndex(int idx) {
+     this.zStart = idx;
   }
   
   public void setManualIntrpPts(boolean isManual) {
@@ -141,6 +204,22 @@ public class TrajectoryParams {
   public void setMarkerEnabled(boolean yesno) {
     this.markerEnabled = yesno;
   }
+  
+  public void setCachingEnabled(boolean yesno) {
+     this.cachingEnabled = yesno;
+  }
+  
+  public void setTrajectoryForm(int form) {
+     trajForm = form;
+  }
+  
+  public void setCylinderWidth(float width) {
+     cylWidth = width;
+  }
+  
+  public void setRibbonWidthFactor(float fac) {
+     this.ribbonWidthFac = fac;
+  }
 
   public double getTrajVisibilityTimeWindow() {
     return trajVisibilityTimeWindow;
@@ -157,9 +236,29 @@ public class TrajectoryParams {
   public int getStartSkip() {
     return startSkip;
   }
+  
+  public int getZStartSkip() {
+    return zStartSkip;
+  }
+  
+  public int getZStartIndex() {
+    return zStart;
+  }
 
   public SmoothParams getSmoothParams() {
     return smoothParams;
+  }
+  
+  public int getTrajectoryForm() {
+    return trajForm;
+  }
+  
+  public float getCylinderWidth() {
+     return cylWidth;
+  }
+  
+  public float getRibbonWidthFactor() {
+     return ribbonWidthFac;
   }
 
   public int getDirection() {
@@ -177,6 +276,11 @@ public class TrajectoryParams {
   public boolean getMarkerEnabled() {
     return this.markerEnabled;
   }
+  
+  public void setStartPoints(float[][] startPts) {
+    this.startPoints = startPts;
+    this.startType = Display.DisplaySpatialCartesianTuple;
+  }
 
   public void setStartPoints(RealTupleType startType, float[][] startPts) {
     this.startType = startType;
@@ -190,7 +294,19 @@ public class TrajectoryParams {
   public RealTupleType getStartType() {
     return startType;
   }
-
+  
+  public boolean getAutoSizeMarker() {
+     return autoSizeMarker;
+  }
+  
+  public void setAutoSizeMarker(boolean autoSizeMarker) {
+     this.autoSizeMarker = autoSizeMarker;
+  }
+  
+  public boolean getCachingEnabled() {
+     return this.cachingEnabled;
+  }
+  
   public boolean equals(Object obj) {
     if (obj == null || !(obj instanceof TrajectoryParams)) {
       return false;
@@ -209,7 +325,34 @@ public class TrajectoryParams {
       else if (this.startSkip != trajParams.startSkip) {
         return false;
       }
+      else if (this.zStart != trajParams.zStart) {
+        return false;
+      }      
+      else if (this.zStartSkip != trajParams.zStartSkip) {
+        return false;
+      }      
       else if (this.smoothParams != trajParams.smoothParams) {
+        return false;
+      }
+      else if (this.trajForm != trajParams.trajForm) {
+        return false;
+      }
+      else if (this.doIntrp != trajParams.doIntrp) {
+         return false;
+      }
+      else if (this.forward != trajParams.forward) {
+         return false;
+      }
+      else if (this.direction != trajParams.direction) {
+         return false;
+      }
+      else if (this.markerEnabled != trajParams.markerEnabled) {
+         return false;
+      }
+      else if (this.cylWidth != trajParams.cylWidth) {
+        return false;
+      }
+      else if (this.ribbonWidthFac != trajParams.ribbonWidthFac) {
         return false;
       }
     }

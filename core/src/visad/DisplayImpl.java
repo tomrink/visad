@@ -4,7 +4,7 @@
 
 /*
 VisAD system for interactive analysis and visualization of numerical
-data.  Copyright (C) 1996 - 2015 Bill Hibbard, Curtis Rueden, Tom
+data.  Copyright (C) 1996 - 2017 Bill Hibbard, Curtis Rueden, Tom
 Rink, Dave Glowacki, Steve Emmerson, Tom Whittaker, Don Murray, and
 Tommy Jasmin.
 
@@ -198,7 +198,7 @@ public abstract class DisplayImpl extends ActionImpl implements LocalDisplay {
 
   /** has this display been destroyed           */
   private boolean destroyed = false;
-
+  
   /**
    * construct a DisplayImpl with given name and DisplayRenderer
    * @param name String name for DisplayImpl (used for debugging)
@@ -3314,6 +3314,15 @@ System.out.println("initialize = " + initialize + " go = " + go +
       }
     }
 
+  }
+  
+  /**
+   * Can be optionally implemented by graphics-api dependent DisplayImpls.
+   * 
+   * @param renderer
+   * @param mode 
+   */
+  public void setDepthBufferOffset(DataRenderer renderer, GraphicsModeControl mode) {
   }
 }
 

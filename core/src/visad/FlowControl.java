@@ -4,7 +4,7 @@
 
 /*
 VisAD system for interactive analysis and visualization of numerical
-data.  Copyright (C) 1996 - 2015 Bill Hibbard, Curtis Rueden, Tom
+data.  Copyright (C) 1996 - 2017 Bill Hibbard, Curtis Rueden, Tom
 Rink, Dave Glowacki, Steve Emmerson, Tom Whittaker, Don Murray, and
 Tommy Jasmin.
 
@@ -205,7 +205,27 @@ public abstract class FlowControl extends Control {
     }
     changeControl(true);
   }
-
+  
+  /**
+   * Enable/disable showing vectors as trajectories
+   *
+   * @param flag  true to display as trajectories
+   * @param tparms TrajectoryParams to apply. Cannot be null
+   * @throws VisADException  problem enabling the trajectories
+   * @throws RemoteException  problem enabling the trajectories on remote system
+   */
+  public void enableTrajectory(boolean flag, TrajectoryParams tparms)
+         throws VisADException, RemoteException {
+    if (tparms == null) {
+       throw new VisADException("TrajectoryParams cannot be null");
+    }
+    trajectoryEnabled = flag;
+    if (trajectoryEnabled && streamlinesEnabled) {
+      streamlinesEnabled = false;
+    }
+    trajParams = new TrajectoryParams(tparms);
+    changeControl(true);
+  }  
 
   /**
    * Set the streamline density
@@ -303,7 +323,7 @@ public abstract class FlowControl extends Control {
 
   public void setTrajectoryParams(TrajectoryParams trajParams)
          throws VisADException, RemoteException {
-    this.trajParams = trajParams;
+    this.trajParams = new TrajectoryParams(trajParams);
     changeControl(true);
   }
 

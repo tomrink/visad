@@ -4,7 +4,7 @@
 
 /*
 This source file is part of the edu.wisc.ssec.mcidas package and is
-Copyright (C) 1998 - 2015 by Tom Whittaker, Tommy Jasmin, Tom Rink,
+Copyright (C) 1998 - 2017 by Tom Whittaker, Tommy Jasmin, Tom Rink,
 Don Murray, James Kelly, Bill Hibbard, Dave Glowacki, Curtis Rueden
 and others.
  
@@ -30,7 +30,7 @@ import java.util.Date;
 
 /** 
  * Class for modelling a McIDAS grid header.
- * @see <A HREF="http://www.ssec.wisc.edu/mug/prog_man/prog_man.html">
+ * @see <A HREF="http://www.ssec.wisc.edu/mcidas/doc/prog_man.html">
  *      McIDAS Programmer's Manual</A>
  *
  * @author Don Murray
@@ -304,7 +304,7 @@ public class GridDirectory
      * Get the navigation parameters.
      * @return  array of nav parameters.  The first value is the grid type
      *          and subsequent values provide the parameters for that type.
-     * see <A HREF="http://www.ssec.wisc.edu/mug/prog_man/prog_man.html">
+     * see <A HREF="http://www.ssec.wisc.edu/mcidas/doc/prog_man.html">
      *      McIDAS Programmer's Manual</A> for a description
      * @see #getNavType()
      */

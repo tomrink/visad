@@ -4,7 +4,7 @@
 
 /*
 VisAD system for interactive analysis and visualization of numerical
-data.  Copyright (C) 1996 - 2015 Bill Hibbard, Curtis Rueden, Tom
+data.  Copyright (C) 1996 - 2017 Bill Hibbard, Curtis Rueden, Tom
 Rink, Dave Glowacki, Steve Emmerson, Tom Whittaker, Don Murray, and
 Tommy Jasmin.
 
@@ -44,7 +44,7 @@ public class ShadowBarbRealTypeJ2D extends ShadowRealTypeJ2D {
   }
 
   public VisADGeometryArray[] makeFlow(int which, float[][] flow_values,
-                float flowScale, float[][] spatial_values,
+                float flowScale, float arrowScale, float[][] spatial_values,
                 byte[][] color_values, boolean[][] range_select)
          throws VisADException {
     DataRenderer renderer = getLink().getRenderer();

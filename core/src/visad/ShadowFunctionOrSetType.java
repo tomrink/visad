@@ -4,7 +4,7 @@
 
 /*
 VisAD system for interactive analysis and visualization of numerical
-data.  Copyright (C) 1996 - 2015 Bill Hibbard, Curtis Rueden, Tom
+data.  Copyright (C) 1996 - 2017 Bill Hibbard, Curtis Rueden, Tom
 Rink, Dave Glowacki, Steve Emmerson, Tom Whittaker, Don Murray, and
 Tommy Jasmin.
 
@@ -1749,6 +1749,12 @@ System.out.println("doTerminal: isTerminal = " + getIsTerminal() +
         isMissingTransparent = (missingTransparent > 0.5f);
       }
       */
+      if (data instanceof FlatField) {
+        int mDim = ((FlatField)data).getDomainSet().getManifoldDimension();
+        if (mDim == 2) {
+          display.setDepthBufferOffset(renderer, mode);
+        }
+      }
 
 // if (link != null) System.out.println("start assembleColor " + (System.currentTimeMillis() - link.start_time));
       visad.util.Trace.call1("ShadowFunctionOrSetType:assembleColor ");
@@ -1792,8 +1798,9 @@ if (color_values != null) {
       float[][] flow1_values = new float[3][];
       float[][] flow2_values = new float[3][];
       float[] flowScale = new float[2];
+      float[] arrowScale = new float[2];
       // MEM
-      shadow_api.assembleFlow(flow1_values, flow2_values, flowScale,
+      shadow_api.assembleFlow(flow1_values, flow2_values, flowScale, arrowScale,
                    display_values, valueArrayLength, valueToScalar,
                    display, default_values, range_select, renderer,
                    shadow_api);
@@ -2124,7 +2131,7 @@ if (range_select[0] != null) {
           }
           else {
             visad.util.Trace.call1("ShadowFunctionOrSetType:makeFlow flow1");
-            arrays = shadow_api.makeFlow(0, flow1_values, flowScale[0],
+            arrays = shadow_api.makeFlow(0, flow1_values, flowScale[0], arrowScale[0],
                               spatial_values, color_values, range_select);
             if (arrays != null) {
               for (int i=0; i<arrays.length; i++) {
@@ -2165,7 +2172,7 @@ if (range_select[0] != null) {
           }
           else {
             visad.util.Trace.call1("ShadowFunctionOrSetType:makeFlow flow2");
-            arrays = shadow_api.makeFlow(1, flow2_values, flowScale[1],
+            arrays = shadow_api.makeFlow(1, flow2_values, flowScale[1], arrowScale[1],
                               spatial_values, color_values, range_select);
             if (arrays != null) {
               for (int i=0; i<arrays.length; i++) {
@@ -3032,7 +3039,7 @@ WLH 15 March 2000 */
                   f1[1][0] = flow1_values[1][0];
                   f1[2][0] = flow1_values[2][0];
                 }
-                arrays = shadow_api.makeFlow(0, f1, flowScale[0], sp, co, ra);
+                arrays = shadow_api.makeFlow(0, f1, flowScale[0], arrowScale[0], sp, co, ra);
                 if (arrays != null) {
                   for (int j=0; j<arrays.length; j++) {
                     if (arrays[j] != null) {
@@ -3058,7 +3065,7 @@ WLH 15 March 2000 */
                   f2[1][0] = flow2_values[1][0];
                   f2[2][0] = flow2_values[2][0];
                 }
-                arrays = shadow_api.makeFlow(1, f2, flowScale[1], sp, co, ra);
+                arrays = shadow_api.makeFlow(1, f2, flowScale[1], arrowScale[1], sp, co, ra);
                 if (arrays != null) {
                   for (int j=0; j<arrays.length; j++) {
                     if (arrays[j] != null) {

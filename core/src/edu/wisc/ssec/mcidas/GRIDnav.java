@@ -4,7 +4,7 @@
 
 /*
 This source file is part of the edu.wisc.ssec.mcidas package and is
-Copyright (C) 1998 - 2015 by Tom Whittaker, Tommy Jasmin, Tom Rink,
+Copyright (C) 1998 - 2017 by Tom Whittaker, Tommy Jasmin, Tom Rink,
 Don Murray, James Kelly, Bill Hibbard, Dave Glowacki, Curtis Rueden
 and others.
  
@@ -29,7 +29,7 @@ package edu.wisc.ssec.mcidas;
 /**
  * GRIDnav is the class for handling the navigation of McIDAS grids.
  * It is basically a Java version of GRDDEF.FOR.
- * @see <A HREF="http://www.ssec.wisc.edu/mug/prog_man/prog_man.html">
+ * @see <A HREF="http://www.ssec.wisc.edu/mcidas/doc/prog_man.html">
  *      McIDAS Programmer's Manual</A>
  *
  * @author Don Murray

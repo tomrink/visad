@@ -1,7 +1,7 @@
 
 /*
 This source file is part of the edu.wisc.ssec.mcidas package and is
-Copyright (C) 1998 - 2015 by Tom Whittaker, Tommy Jasmin, Tom Rink,
+Copyright (C) 1998 - 2017 by Tom Whittaker, Tommy Jasmin, Tom Rink,
 Don Murray, James Kelly, Bill Hibbard, Dave Glowacki, Curtis Rueden
 and others.
  
@@ -54,6 +54,14 @@ public class CalibratorFY2 extends CalibratorDefault implements Calibrator {
 	public CalibratorFY2(int[] prefix, int[] areaDir, int[] calBlock)
 			throws IOException {
 		super(null, null);
+		if(calBlock != null)
+			initFY2(prefix, areaDir, calBlock);
+		else
+			setIsPreCalibrated(true);
+	}
+
+	public void initFY2(int[] prefix, int[] areaDir, int[] calBlock){
+
 		this.prefix = prefix;
 		this.calBlock = calBlock;
 		// initialize tables
@@ -77,7 +85,30 @@ public class CalibratorFY2 extends CalibratorDefault implements Calibrator {
 			}
 		}
 	}
-	
+
+	public int[] calibratedList( final int band, final boolean isPreCal ) {
+		int[] cList;
+
+		if(isPreCal){
+			if (band == 1) {
+				// Visible
+				cList = new int[]{CAL_RAW, CAL_BRIT};
+			} else {
+				// IR Channel
+				cList = new int[]{CAL_RAW, CAL_TEMP, CAL_BRIT};
+			}
+		} else {
+			if (band == 1) {
+				// Visible
+				cList = new int[]{CAL_RAW, CAL_ALB, CAL_BRIT};
+			} else {
+				// IR Channel
+				cList = new int[]{CAL_RAW, CAL_TEMP, CAL_RAD, CAL_BRIT};
+			}
+		}
+
+		return cList;
+	}
 	/* (non-Javadoc)
 	 * @see edu.wisc.ssec.mcidas.CalibratorDefault#calibrate(float, int, int)
 	 */
@@ -185,5 +216,35 @@ public class CalibratorFY2 extends CalibratorDefault implements Calibrator {
 
 		return (outVal);
 	}
-	  
+
+
+	public String calibratedUnit(int calType){
+		String unitStr = null;
+		switch (calType) {
+
+			case CAL_RAW:
+				unitStr = null;
+				break;
+
+			case CAL_RAD:
+				unitStr = "MW**";
+				break;
+
+			case CAL_ALB:
+				unitStr = "%";
+				break;
+
+			case CAL_TEMP:
+				unitStr = "K";
+				break;
+
+			case CAL_BRIT:
+				unitStr = null;
+				break;
+
+		}
+
+		return unitStr;
+
+	}
 }

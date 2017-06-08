@@ -4,7 +4,7 @@
 
 /*
 VisAD system for interactive analysis and visualization of numerical
-data.  Copyright (C) 1996 - 2015 Bill Hibbard, Curtis Rueden, Tom
+data.  Copyright (C) 1996 - 2017 Bill Hibbard, Curtis Rueden, Tom
 Rink, Dave Glowacki, Steve Emmerson, Tom Whittaker, Don Murray, and
 Tommy Jasmin.
 
@@ -73,7 +73,11 @@ public abstract class DataRenderer extends Object implements Cloneable {
   
   /** place to hold ProjectionControl Listeners created by this renderer */
   private ArrayList<ControlListener> projCntrlListeners = new ArrayList<ControlListener>();
-
+  
+  /** Depth buffer offset and factor for this DataRenderer */
+  private boolean hasPolygonOffset = false;
+  private float polygonOffset = 0f;
+  private float polygonOffsetFactor = 0f;
 
   /**
    * construct a DataRenderer
@@ -2729,6 +2733,30 @@ System.out.println("checkClose: distance = " + distance);
    * @return a copy of this DataRenderer
    */
   public abstract Object clone() throws CloneNotSupportedException;
+  
+  public boolean hasPolygonOffset() {
+    return hasPolygonOffset;
+  }
+  
+  public void setHasPolygonOffset(boolean hasPolygonOffset) {
+    this.hasPolygonOffset = hasPolygonOffset;
+  }
+  
+  public float getPolygonOffset() {
+    return polygonOffset;
+  }
+  
+  public void setPolygonOffset(float polygonOffset) {
+    this.polygonOffset = polygonOffset;
+  }
+  
+  public float getPolygonOffsetFactor() {
+    return polygonOffsetFactor;
+  }
+  
+  public void setPolygonOffsetFactor(float polygonOffsetFactor) {
+    this.polygonOffsetFactor = polygonOffsetFactor;
+  }
 
 }
 

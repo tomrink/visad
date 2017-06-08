@@ -4,7 +4,7 @@
 
 /*
 VisAD system for interactive analysis and visualization of numerical
-data.  Copyright (C) 1996 - 2015 Bill Hibbard, Curtis Rueden, Tom
+data.  Copyright (C) 1996 - 2017 Bill Hibbard, Curtis Rueden, Tom
 Rink, Dave Glowacki, Steve Emmerson, Tom Whittaker, Don Murray, and
 Tommy Jasmin.
 
@@ -92,6 +92,9 @@ import visad.java3d.DisplayImplJ3D;
 import visad.java3d.ShadowFunctionTypeJ3D;
 import visad.java3d.VisADImageNode;
 import visad.java3d.VisADImageTile;
+import visad.java3d.RendererJ3D;
+import visad.java3d.DisplayImplJ3D;
+import visad.java3d.GraphicsModeControlJ3D;
 
 /**
    The ShadowImageFunctionTypeJ3D class shadows the FunctionType class for
@@ -662,7 +665,9 @@ public class ShadowImageByRefFunctionTypeJ3D extends ShadowFunctionTypeJ3D {
 
     GraphicsModeControl mode = (GraphicsModeControl)
           display.getGraphicsModeControl().clone();
-
+    
+    display.setDepthBufferOffset(renderer, mode);
+    
     // get some precomputed values useful for transform
     // mapping from ValueArray to MapVector
     int[] valueToMap = display.getValueToMap();
@@ -1845,7 +1850,7 @@ throws VisADException, RemoteException {
     else {
       // compute size of triangle array to map texture onto
       int size = (data_width + data_height) / 2;
-      curved_size = Math.max(2, Math.min(curved_size, size / 32));
+      curved_size = Math.min(curved_size, size / 32);
       int nwidth = 2 + (data_width - 1) / curved_size;
       int nheight = 2 + (data_height - 1) / curved_size;
 

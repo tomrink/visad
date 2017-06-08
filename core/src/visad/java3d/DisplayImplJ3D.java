@@ -4,7 +4,7 @@
 
 /*
 VisAD system for interactive analysis and visualization of numerical
-data.  Copyright (C) 1996 - 2015 Bill Hibbard, Curtis Rueden, Tom
+data.  Copyright (C) 1996 - 2017 Bill Hibbard, Curtis Rueden, Tom
 Rink, Dave Glowacki, Steve Emmerson, Tom Whittaker, Don Murray, and
 Tommy Jasmin.
 
@@ -72,6 +72,8 @@ import java.awt.*;
 
 import javax.media.j3d.*;
 import com.sun.j3d.utils.applet.MainFrame;
+import java.util.Iterator;
+import java.util.Vector;
 // import com.sun.j3d.utils.applet.AppletFrame;
 
 /**
@@ -184,6 +186,19 @@ public class DisplayImplJ3D extends DisplayImpl {
     TEXTURE_NPOT = Boolean.parseBoolean(System.getProperty(PROP_TEXTURE_NPOT, "false"));
     //System.err.println("TEXTURE_NPOT:"+TEXTURE_NPOT);
   }
+  
+  /**
+   * Workaround for Java3D "grey window problem": sometimes Canvas3D is not painted
+   * This problem is rare and often hard to reproduce, so it is disabled by default.
+   */
+  public static final String NO_ERASE_BACKGROUND = "visad.java3d.noerasebackground";
+  static {
+    if (Boolean.parseBoolean(System.getProperty(NO_ERASE_BACKGROUND, "false"))) {
+      System.setProperty("sun.awt.noerasebackground", "true");
+      // If setting the above, suggested by Jogamp to set this to a small non-zero value. (TDR)
+      UniverseBuilderJ3D.setMinimumFrameCycleTime(20);
+    }
+  }
 
   /** this is used for APPLETFRAME */
   private DisplayAppletJ3D applet = null;
@@ -193,7 +208,7 @@ public class DisplayImplJ3D extends DisplayImpl {
   private int apiValue = UNKNOWN;
 
   private UniverseBuilderJ3D universe = null;
-
+  
   /** construct a DisplayImpl for Java3D with the
       default DisplayRenderer, in a JFC JPanel */
   public DisplayImplJ3D(String name)
@@ -772,6 +787,77 @@ public class DisplayImplJ3D extends DisplayImpl {
     projection = null;
     mode = null;
   }
-
+  
+  float getOffsetDepthMinimum(float depthOffsetMax) {
+    Vector rendVec = getRendererVector();
+    Iterator<DataRenderer> iter = rendVec.iterator();
+    float offsetMin = depthOffsetMax;
+    while (iter.hasNext()) {
+      DataRenderer rend = iter.next();
+        if (rend.hasPolygonOffset()) {
+          if (rend.getPolygonOffset() < offsetMin) {
+            offsetMin = rend.getPolygonOffset();  
+          }
+        }
+    }
+    return offsetMin;
+  }
+    
+  int getNumRenderersWithZoffset() {
+     Vector rendVec = getRendererVector();
+     Iterator<DataRenderer> iter = rendVec.iterator();
+     int num = 0;
+     while (iter.hasNext()) {
+       DataRenderer rend = iter.next();
+       if (rend.hasPolygonOffset()) {
+         num++;
+       }
+     }
+     return num;
+   }
+   
+   /**
+    * Sets the depth buffer offset when autoDepthOffset is enabled for this display.
+    * @param renderer
+    * @param mode 
+    */
+  public void setDepthBufferOffset(DataRenderer renderer, GraphicsModeControl mode) {
+     GraphicsModeControlJ3D mode3d = (GraphicsModeControlJ3D) mode;
+     if (mode3d.getAutoDepthOffsetEnable()) {
+       float depthOffsetInc = mode3d.getDepthOffsetIncrement();
+       int numLayers = mode3d.getNumRenderersWithDepthOffset();
+       float maxDepthOffset = numLayers*(-depthOffsetInc);
+       
+       if (!renderer.hasPolygonOffset()) {
+         int cnt = getNumRenderersWithZoffset();
+         if (cnt < numLayers) {
+           renderer.setPolygonOffset(getOffsetDepthMinimum(maxDepthOffset) + depthOffsetInc);
+           renderer.setPolygonOffsetFactor(0f);
+           renderer.setHasPolygonOffset(true);  
+         }
+         else {
+           renderer.setPolygonOffset(0f);  
+           renderer.setPolygonOffsetFactor(0f);
+           renderer.setHasPolygonOffset(false);
+         }
+       }
+       mode3d.setPolygonOffset(renderer.getPolygonOffset(), false);
+       mode3d.setPolygonOffsetFactor(renderer.getPolygonOffsetFactor(), false);
+     }
+   }
+   
+   public void resetDepthBufferOffsets() {
+     Vector rendVec = getRendererVector();
+     Iterator<DataRenderer> iter = rendVec.iterator();
+     while (iter.hasNext()) {
+       DataRenderer rend = iter.next();
+       if (rend.hasPolygonOffset()) {
+         rend.setHasPolygonOffset(false);
+         rend.setPolygonOffset(0f);
+         rend.setPolygonOffsetFactor(0f);
+       }
+     }
+   }
+  
 }
 

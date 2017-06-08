@@ -4,7 +4,7 @@
 
 /*
 This source file is part of the edu.wisc.ssec.mcidas package and is
-Copyright (C) 1998 - 2015 by Tom Whittaker, Tommy Jasmin, Tom Rink,
+Copyright (C) 1998 - 2017 by Tom Whittaker, Tommy Jasmin, Tom Rink,
 Don Murray, James Kelly, Bill Hibbard, Dave Glowacki, Curtis Rueden
 and others.
  
@@ -43,13 +43,14 @@ public interface Calibrator {
 
 	}
 
-public static final int CAL_NONE = -1;
+  public static final int CAL_NONE = -1;
   public static final int CAL_MIN  = 1;
   public static final int CAL_RAW  = 1;
   public static final int CAL_RAD  = 2;
   public static final int CAL_ALB  = 3;
   public static final int CAL_TEMP = 4;
   public static final int CAL_BRIT = 5;
+  public static final int CAL_REFL = 6;
   public static final int CAL_MAX  = 5;
 
   /** FY-2D */
@@ -63,7 +64,11 @@ public static final int CAL_NONE = -1;
   /** FY-2H */
   public static final int SENSOR_FY2H = 40;
   /** Meteosat Second Generation imager. */
-  public static final int SENSOR_MSG_IMGR = 51;
+  public static final int SENSOR_MSG8_IMGR = 51;
+  /** Meteosat Second Generation imager. */
+  public static final int SENSOR_MSG9_IMGR = 52;
+  /** Meteosat Second Generation imager. */
+  public static final int SENSOR_MSG10_IMGR = 53;
   /** GOES 8 imager. */
   public static final int SENSOR_GOES8_IMGR = 70;
   /** GOES 8 sounder. */
@@ -96,7 +101,8 @@ public static final int CAL_NONE = -1;
   public static final int SENSOR_GOES16_IMGR = 186;
   /** GOES 16 sounder. */
   public static final int SENSOR_GOES16_SNDR = 187;
-  
+
+
   public int setCalType (
     int calType
   );
@@ -113,4 +119,26 @@ public static final int CAL_NONE = -1;
     int calTypeOut
   );
 
+  public int[] calibratedList (
+          int band,
+          boolean isPreCal
+  );
+
+  public  String calibratedUnit (
+          int calType
+  );
+
+  public float convertBritToTemp(
+          int inVal
+  );
+
+  public float[] convertBritToTemp (
+          float[] inputData
+  );
+
+  public boolean getIsPreCalibrated();
+
+  public void setIsPreCalibrated(
+          boolean isPreCalibrated
+  );
 }

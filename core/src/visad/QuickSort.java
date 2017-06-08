@@ -4,7 +4,7 @@
 
 /*
 VisAD system for interactive analysis and visualization of numerical
-data.  Copyright (C) 1996 - 2015 Bill Hibbard, Curtis Rueden, Tom
+data.  Copyright (C) 1996 - 2017 Bill Hibbard, Curtis Rueden, Tom
 Rink, Dave Glowacki, Steve Emmerson, Tom Whittaker, Don Murray, and
 Tommy Jasmin.
 
@@ -178,6 +178,34 @@ public class QuickSort {
     int[] p = new int[a.length];
     for (int i=0; i<a.length; i++) p[i] = i;
     sort(a, p, 0, a.length-1);
+    return p;
+  }
+  
+  /**
+   * Sort the array in place and return an array of the
+   * orginal indices.
+   * @param  a  array of floats to sort
+   * @param start to stop (inclusive)
+   * @return  array of the original indices of each  element of a.
+   */
+  public static int[] sort(float a[], int start, int stop) throws VisADException {
+    int[] p = new int[a.length];
+    for (int i=0; i<a.length; i++) p[i] = i;
+    sort(a, p, start, stop);
+    return p;
+  }
+
+  /**
+   * Sort the array in place and return an array of the
+   * orginal indices.
+   * @param  a  array of doubles to sort
+   * @param start to stop (inclusive)
+   * @return  array of the original indices of each  element of a.
+   */
+  public static int[] sort(double a[], int start, int stop) throws VisADException {
+    int[] p = new int[a.length];
+    for (int i=0; i<a.length; i++) p[i] = i;
+    sort(a, p, start, stop);
     return p;
   }
 

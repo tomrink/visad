@@ -4,7 +4,7 @@
 
 /*
 This source file is part of the edu.wisc.ssec.mcidas package and is
-Copyright (C) 1998 - 2015 by Tom Whittaker, Tommy Jasmin, Tom Rink,
+Copyright (C) 1998 - 2017 by Tom Whittaker, Tommy Jasmin, Tom Rink,
 Don Murray, James Kelly, Bill Hibbard, Dave Glowacki, Curtis Rueden
 and others.
  
@@ -75,7 +75,9 @@ public final class CalibratorFactory {
 		Calibrator calibrator = null;
 	    switch (id) {
 	      
-	      case Calibrator.SENSOR_MSG_IMGR:
+	      case Calibrator.SENSOR_MSG8_IMGR:
+		  case Calibrator.SENSOR_MSG9_IMGR:
+		  case Calibrator.SENSOR_MSG10_IMGR:
 	    	  calibrator = new CalibratorMsg(cal);
 	    	  calibrator.setCalType(srcType);
 	    	  break;
@@ -156,7 +158,9 @@ public final class CalibratorFactory {
       case Calibrator.SENSOR_GOES8_SNDR:
       case Calibrator.SENSOR_GOES9_IMGR:
       case Calibrator.SENSOR_GOES9_SNDR:
-      case Calibrator.SENSOR_MSG_IMGR:
+      case Calibrator.SENSOR_MSG8_IMGR:
+	  case Calibrator.SENSOR_MSG9_IMGR:
+	  case Calibrator.SENSOR_MSG10_IMGR:
         return true;
       default:
         return false;

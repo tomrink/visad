@@ -4,7 +4,7 @@
 
 /*
 This source file is part of the edu.wisc.ssec.mcidas package and is
-Copyright (C) 1998 - 2015 by Tom Whittaker, Tommy Jasmin, Tom Rink,
+Copyright (C) 1998 - 2017 by Tom Whittaker, Tommy Jasmin, Tom Rink,
 Don Murray, James Kelly, Bill Hibbard, Dave Glowacki, Curtis Rueden
 and others.
 
@@ -522,7 +522,7 @@ public class AreaFile implements java.io.Serializable {
     int newDatOffset = startLine * lineLength;
     newDatOffset += linePrefixLength;
     newDatOffset += startElem * (origNumBands * dir[AD_DATAWIDTH]);
-    newDatOffset += (band - 1) * dir[AD_DATAWIDTH];
+    newDatOffset += bandIdx * dir[AD_DATAWIDTH];
 
     // reflect subset in directory
     dir[AD_DATAOFFSET] = newDatOffset;
@@ -712,7 +712,8 @@ public class AreaFile implements java.io.Serializable {
           throw new AreaFileException("Error reading AreaFile calibration", e);
         }
       }
-      // if (flipwords) flipcal(cal);
+      if (flipwords) //flipcal(cal);
+        McIDASUtil.flip(cal, 0, cal.length-1);
       position = calLoc + calbytes;
     }
 

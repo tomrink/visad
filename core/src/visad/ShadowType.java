@@ -4,7 +4,7 @@
 
 /*
 VisAD system for interactive analysis and visualization of numerical
-data.  Copyright (C) 1996 - 2015 Bill Hibbard, Curtis Rueden, Tom
+data.  Copyright (C) 1996 - 2017 Bill Hibbard, Curtis Rueden, Tom
 Rink, Dave Glowacki, Steve Emmerson, Tom Whittaker, Don Murray, and
 Tommy Jasmin.
 
@@ -2087,7 +2087,7 @@ public abstract class ShadowType extends Object implements java.io.Serializable 
    * is required
    */
   public void assembleFlow(float[][] flow1_values, float[][] flow2_values,
-      float[] flowScale, float[][] display_values, int valueArrayLength,
+      float[] flowScale, float[] arrowScale, float[][] display_values, int valueArrayLength,
       int[] valueToScalar, DisplayImpl display, float[] default_values,
       boolean[][] range_select, DataRenderer renderer, ShadowType shadow_api)
       throws VisADException, RemoteException {
@@ -2123,6 +2123,7 @@ public abstract class ShadowType extends Object implements java.io.Serializable 
             ScalarMap map = (ScalarMap) MapVector.elementAt(valueToMap[i]);
             FlowControl control = (FlowControl) map.getControl();
             flowScale[k] = control.getFlowScale();
+            arrowScale[k] = control.getArrowScale();
             int flow_index = real.getTupleIndex();
             ff_values[k][flow_index] = display_values[i];
             flen[k] = Math.max(flen[k], display_values[i].length);
@@ -2519,7 +2520,9 @@ System.out.println("adjusted flow values = " + flow_values[0][0] + " " +
 
     int flow_dim0 = -1;
     int flow_dim1 = -1;
-    int cnt_flow_maps = 0;
+    int cnt_flow1_maps = 0;
+    int cnt_flow2_maps = 0;
+    
     for (int k = 0; k < range_reals.length; k++) {
       for (int i = 0; i < valueArrayLength; i++) {
         ScalarMap map = (ScalarMap) MapVector.elementAt(valueToMap[i]);
@@ -2527,39 +2530,57 @@ System.out.println("adjusted flow values = " + flow_values[0][0] + " " +
         ScalarType scalar = map.getScalar();
         if (!scalar.equals(range_reals[k]))
           continue;
-        if ((dreal.equals(Display.Flow1X)) || (dreal.equals(Display.Flow2X))
-            || (dreal.equals(Display.Flow1Elevation))
-            || (dreal.equals(Display.Flow2Elevation))) {
+        if ((dreal.equals(Display.Flow1X)) || dreal.equals(Display.Flow1Elevation)) {
           if (flow_dim0 == -1) {
             flow_dim0 = 0;
           } else {
             flow_dim0 = 0;
             flow_dim1 = 1;
           }
-          cnt_flow_maps++;
+          cnt_flow1_maps++;
         }
-        if ((dreal.equals(Display.Flow1Y)) || (dreal.equals(Display.Flow2Y))
-            || (dreal.equals(Display.Flow1Azimuth))
-            || (dreal.equals(Display.Flow2Azimuth))) {
+        if ((dreal.equals(Display.Flow2X)) || dreal.equals(Display.Flow2Elevation)) {
+          if (flow_dim0 == -1) {
+            flow_dim0 = 0;
+          } else {
+            flow_dim0 = 0;
+            flow_dim1 = 1;
+          }
+          cnt_flow2_maps++;
+        }
+        if (dreal.equals(Display.Flow1Y) || dreal.equals(Display.Flow1Azimuth)) {
           if (flow_dim0 == -1) {
             flow_dim0 = 1;
           } else {
             flow_dim1 = 1;
           }
-          cnt_flow_maps++;
+          cnt_flow1_maps++;
         }
-        if ((dreal.equals(Display.Flow1Z)) || (dreal.equals(Display.Flow2Z))
-            || (dreal.equals(Display.Flow1Radial))
-            || (dreal.equals(Display.Flow2Radial))) {
+        if (dreal.equals(Display.Flow2Y) ||dreal.equals(Display.Flow2Azimuth)) {
+          if (flow_dim0 == -1) {
+            flow_dim0 = 1;
+          } else {
+            flow_dim1 = 1;
+          }
+          cnt_flow2_maps++;
+        }        
+        if (dreal.equals(Display.Flow1Z) || dreal.equals(Display.Flow1Radial)) {
           flow_dim1 = 2;
-          cnt_flow_maps++;
+          cnt_flow1_maps++;
+        }
+        if (dreal.equals(Display.Flow2Z) || dreal.equals(Display.Flow2Radial)) {
+          flow_dim1 = 2;
+          cnt_flow2_maps++;
         }
       }
     }
 
-    if (cnt_flow_maps > 2) {
-      throw new BadMappingException(
-          "only one or two ScalarMaps to Flow per data allowed if streamlines enabled");
+    if (cnt_flow1_maps > 2 || cnt_flow2_maps > 2) {
+      throw new BadMappingException("Streamlines: Flow tuple dimension must be two");
+    }
+    
+    if (flow_dim0 == -1 || flow_dim1 == -1) {
+      throw new BadMappingException("Streamlines: Flow tuple dimension must be two");
     }
     // - 2004-01-14 ------------------------------------------------------
 
@@ -2831,7 +2852,7 @@ System.out.println("adjusted flow values = " + flow_values[0][0] + " " +
     }
 
     byte[][] color_values = null;
-
+            
     if (colorMap == null) {
       return null;
     }
@@ -2844,7 +2865,7 @@ System.out.println("adjusted flow values = " + flow_values[0][0] + " " +
     color_values = new byte[clrDim][fltClrs[0].length];
     for (int d=0; d<clrDim; d++) {
       for (int t=0; t<color_values[0].length; t++) {
-        color_values[d][t] = (byte) (fltClrs[d][t]*255.0);
+        color_values[d][t] = ShadowType.floatToByte(fltClrs[d][t]);
       }
     }
     return color_values;
@@ -2855,7 +2876,7 @@ System.out.println("adjusted flow values = " + flow_values[0][0] + " " +
 
   /** which = 0 for Flow1 and which = 1 for Flow2 */
   public VisADGeometryArray[] makeFlow(int which, float[][] flow_values,
-      float flowScale, float[][] spatial_values, byte[][] color_values,
+      float flowScale, float arrowScale, float[][] spatial_values, byte[][] color_values,
       boolean[][] range_select) throws VisADException {
     if (flow_values[0] == null)
       return null;
@@ -2924,26 +2945,26 @@ System.out.println("adjusted flow values = " + flow_values[0][0] + " " +
         coordinates[m++] = coordinates[n++];
         coordinates[m++] = coordinates[n++];
         boolean mode2d = display.getDisplayRenderer().getMode2D();
-        b0 = a0 = BACK_SCALE * f0;
-        b1 = a1 = BACK_SCALE * f1;
-        b2 = a2 = BACK_SCALE * f2;
+        b0 = a0 = BACK_SCALE * arrowScale * f0;
+        b1 = a1 = BACK_SCALE * arrowScale * f1;
+        b2 = a2 = BACK_SCALE * arrowScale * f2;
 
         if (mode2d
             || (Math.abs(f2) <= Math.abs(f0) && Math.abs(f2) <= Math.abs(f1))) {
-          a0 += PERP_SCALE * f1;
-          a1 -= PERP_SCALE * f0;
-          b0 -= PERP_SCALE * f1;
-          b1 += PERP_SCALE * f0;
+          a0 += PERP_SCALE * arrowScale * f1;
+          a1 -= PERP_SCALE * arrowScale * f0;
+          b0 -= PERP_SCALE * arrowScale * f1;
+          b1 += PERP_SCALE * arrowScale * f0;
         } else if (Math.abs(f1) <= Math.abs(f0)) {
-          a0 += PERP_SCALE * f2;
-          a2 -= PERP_SCALE * f0;
-          b0 -= PERP_SCALE * f2;
-          b2 += PERP_SCALE * f0;
+          a0 += PERP_SCALE * arrowScale * f2;
+          a2 -= PERP_SCALE * arrowScale * f0;
+          b0 -= PERP_SCALE * arrowScale * f2;
+          b2 += PERP_SCALE * arrowScale * f0;
         } else { // f0 is least
-          a1 += PERP_SCALE * f2;
-          a2 -= PERP_SCALE * f1;
-          b1 -= PERP_SCALE * f2;
-          b2 += PERP_SCALE * f1;
+          a1 += PERP_SCALE * arrowScale * f2;
+          a2 -= PERP_SCALE * arrowScale * f1;
+          b1 -= PERP_SCALE * arrowScale * f2;
+          b2 += PERP_SCALE * arrowScale * f1;
         }
 
         k = n;
@@ -3751,8 +3772,9 @@ System.out.println("adjusted flow values = " + flow_values[0][0] + " " +
     float[][] flow1_values = new float[3][];
     float[][] flow2_values = new float[3][];
     float[] flowScale = new float[2];
+    float[] arrowScale = new float[2];
     boolean[][] range_select = new boolean[1][];
-    shadow_api.assembleFlow(flow1_values, flow2_values, flowScale,
+    shadow_api.assembleFlow(flow1_values, flow2_values, flowScale, arrowScale,
         display_values, valueArrayLength, valueToScalar, display,
         default_values, range_select, renderer, shadow_api);
 
@@ -3840,7 +3862,7 @@ System.out.println("adjusted flow values = " + flow_values[0][0] + " " +
 
       boolean anyFlowCreated = false;
       // try Flow1
-      arrays = shadow_api.makeFlow(0, flow1_values, flowScale[0],
+      arrays = shadow_api.makeFlow(0, flow1_values, flowScale[0], arrowScale[0],
           spatial_values, color_values, range_select);
       if (arrays != null) {
         for (int i = 0; i < arrays.length; i++) {
@@ -3852,7 +3874,7 @@ System.out.println("adjusted flow values = " + flow_values[0][0] + " " +
         anyFlowCreated = true;
       }
       // try Flow2
-      arrays = shadow_api.makeFlow(1, flow2_values, flowScale[1],
+      arrays = shadow_api.makeFlow(1, flow2_values, flowScale[1], arrowScale[1],
           spatial_values, color_values, range_select);
       if (arrays != null) {
         for (int i = 0; i < arrays.length; i++) {
@@ -4280,6 +4302,15 @@ System.out.println("adjusted flow values = " + flow_values[0][0] + " " +
       GraphicsModeControl mode, float constant_alpha, float[] constant_color)
       throws VisADException {
     return false;
+  }
+  
+  /* Convenience method that returns a Branch node, which may be parented,
+     and whose only child can be detached. Acts also as an id since its parent
+     may have multiple children */
+  public Object addToDetachableGroup(Object group, VisADGeometryArray array,
+      GraphicsModeControl mode, float constant_alpha, float[] constant_color)
+      throws VisADException {
+    return null;     
   }
 
   //public void addLabelsToGroup(Object group, VisADGeometryArray[][] arrays,

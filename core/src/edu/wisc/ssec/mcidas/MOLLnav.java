@@ -4,7 +4,7 @@
 
 /*
 This source file is part of the edu.wisc.ssec.mcidas package and is
-Copyright (C) 1998 - 2015 by Tom Whittaker, Tommy Jasmin, Tom Rink,
+Copyright (C) 1998 - 2017 by Tom Whittaker, Tommy Jasmin, Tom Rink,
 Don Murray, James Kelly, Bill Hibbard, Dave Glowacki, Curtis Rueden
 and others.
  
@@ -32,7 +32,7 @@ package edu.wisc.ssec.mcidas;
  * only supports latitude/longitude to line/element transformations (LL) 
  * and vice/versa. Transform to 'XYZ' not implemented.
  * @see edu.wisc.ssec.mcidas.AREAnav
- * @see <A HREF="http://www.ssec.wisc.edu/mug/prog_man/prog_man.html">
+ * @see <A HREF="http://www.ssec.wisc.edu/mcidas/doc/prog_man.html">
  *      McIDAS Programmer's Manual</A>
  *
  * @author  Don Murray

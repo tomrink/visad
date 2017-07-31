@@ -531,7 +531,7 @@ public abstract class DisplayRendererA3D
    * @return Scene graph root.
    */
   public abstract BranchGroup createSceneGraph(View v, TransformGroup vpt,
-                                               VisADCanvasJ3D c);
+                                               VisADCanvasA3D c);
 
   /** @deprecated use createBasicSceneGraph(View v, TransformGroup vpt,
          VisADCanvasJ3D c, MouseBehaviorJ3D m, ColoringAttributes bc,
@@ -559,7 +559,7 @@ public abstract class DisplayRendererA3D
    * @return Scene graph root.
    */
   public BranchGroup createBasicSceneGraph(View v, TransformGroup vpt,
-         VisADCanvasJ3D c, MouseBehaviorJ3D m, ColoringAttributes bc,
+         VisADCanvasA3D c, MouseBehaviorJ3D m, ColoringAttributes bc,
          ColoringAttributes cc) {
     if (root != null) return root;
     if (not_destroyed == null) return null;

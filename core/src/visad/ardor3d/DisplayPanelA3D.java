@@ -48,10 +48,6 @@ public class DisplayPanelA3D extends JPanel {
     display = d;
     renderer = (DisplayRendererA3D) display.getDisplayRenderer();
     setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
-/* WLH 26 March 99
-    setAlignmentY(TOP_ALIGNMENT);
-    setAlignmentX(LEFT_ALIGNMENT);
-*/
     canvas = (c != null) ? c : new VisADCanvasA3D(renderer, config);
     canvas.setComponent(this);
     add(canvas);
@@ -70,7 +66,6 @@ public class DisplayPanelA3D extends JPanel {
     canvas.setVisible(v);
   }
 
-  // WLH 17 Dec 2001
   public void destroy() {
     canvas = null;
     display = null;

@@ -263,7 +263,7 @@ public class VisADCanvasA3D {
     myConfig = defaultConfig;
     setTextureProperties();
     displayRenderer = renderer;
-    display = (DisplayImplJ3D)renderer.getDisplay();
+    display = (DisplayImplA3D)renderer.getDisplay();
     component = null;
     offscreen = true;
     width = w;
@@ -320,6 +320,7 @@ public class VisADCanvasA3D {
       // this may need to be in postRender (invoked before buffer swap)
       captureFlag = false;
 
+      /* Java#D stuff
       int width = getSize().width;
       int height = getSize().height;
       GraphicsContext3D ctx = getGraphicsContext3D();
@@ -339,6 +340,8 @@ public class VisADCanvasA3D {
       ImageComponent2D img_src = ras.getImage();
       if (captureImage != null) captureImage.flush();
       captureImage = img_src.getImage();
+      */
+      
       displayRenderer.notifyCapture();
 
       // CTR 21 Sep 99 - send BufferedImage to any attached slaved displays

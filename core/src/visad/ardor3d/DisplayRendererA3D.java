@@ -130,7 +130,7 @@ public abstract class DisplayRendererA3D
   /** View associated with this VirtualUniverse */
   private View view;
   /** VisADCanvasJ3D associated with this VirtualUniverse */
-  private VisADCanvasJ3D canvas;
+  private VisADCanvasA3D canvas;
 
   /** root BranchGroup of scene graph under Locale */
   private BranchGroup root = null;
@@ -996,11 +996,12 @@ public abstract class DisplayRendererA3D
    * @param canvas
    */
   
-  public void drawCursorStringVector(VisADCanvasJ3D canvas) {
+  public void drawCursorStringVector(VisADCanvasA3D canvas) {
     
 	if (not_destroyed == null) return;
 
-    GraphicsContext3D graphics = canvas.getGraphicsContext3D();
+    GraphicsContext3D graphics = null;
+//    GraphicsContext3D graphics = canvas.getGraphicsContext3D();
     // graphics.setModelClip(null);
     // causes NullPointerException at GraphicsContext3D.java:689
 
@@ -1018,9 +1019,9 @@ public abstract class DisplayRendererA3D
     Point3d position1 = new Point3d();
     Point3d position2 = new Point3d();
     Point3d position3 = new Point3d();
-    canvas.getPixelLocationInImagePlate(1, 10, position1);
-    canvas.getPixelLocationInImagePlate(10, 10, position2);
-    canvas.getPixelLocationInImagePlate(1, 1, position3);
+//    canvas.getPixelLocationInImagePlate(1, 10, position1);
+//    canvas.getPixelLocationInImagePlate(10, 10, position2);
+//    canvas.getPixelLocationInImagePlate(1, 1, position3);
 
     DisplayImpl display = getDisplay();
     if (display != null && display.getGraphicsModeControl() != null) {
@@ -1029,8 +1030,8 @@ public abstract class DisplayRendererA3D
           View.PERSPECTIVE_PROJECTION) {
         Point3d left_eye = new Point3d();
         Point3d right_eye = new Point3d();
-        canvas.getLeftEyeInImagePlate(left_eye);
-        canvas.getRightEyeInImagePlate(right_eye);
+//        canvas.getLeftEyeInImagePlate(left_eye);
+//        canvas.getRightEyeInImagePlate(right_eye);
         Point3d eye = new Point3d((left_eye.x + right_eye.x)/2.0,
                                   (left_eye.y + right_eye.y)/2.0,
                                   (left_eye.z + right_eye.z)/2.0);
@@ -1049,7 +1050,7 @@ public abstract class DisplayRendererA3D
 // end of hack to move text closer to eye
 
     Transform3D t = new Transform3D();
-    canvas.getImagePlateToVworld(t);
+//    canvas.getImagePlateToVworld(t);
     t.transform(position1);
     t.transform(position2);
     t.transform(position3);
@@ -1072,7 +1073,7 @@ public abstract class DisplayRendererA3D
     			try {
     				VisADLineArray array =
     						PlotText.render_label(string, start, base, up, false);
-    				graphics.draw(((DisplayImplJ3D) getDisplay()).makeGeometry(array));
+    				graphics.draw(((DisplayImplA3D) getDisplay()).makeGeometry(array));
     				start[1] -= 1.2 * up[1];
     			}
     			catch (VisADException e) {
@@ -1097,7 +1098,7 @@ public abstract class DisplayRendererA3D
         try {
           VisADLineArray array =
             PlotText.render_label(string, startl, base, up, false);
-          graphics.draw(((DisplayImplJ3D) getDisplay()).makeGeometry(array));
+          graphics.draw(((DisplayImplA3D) getDisplay()).makeGeometry(array));
           startl[1] += 1.2 * up[1];
         }
         catch (VisADException e) {
@@ -1110,7 +1111,7 @@ public abstract class DisplayRendererA3D
       try {
         VisADLineArray array =
           PlotText.render_label("please wait . . .", startl, base, up, false);
-        graphics.draw(((DisplayImplJ3D) getDisplay()).makeGeometry(array));
+        graphics.draw(((DisplayImplA3D) getDisplay()).makeGeometry(array));
         startl[1] += 1.2 * up[1];
       }
       catch (VisADException e) {
@@ -1130,12 +1131,12 @@ public abstract class DisplayRendererA3D
       try {
         VisADLineArray array =
           PlotText.render_label(animation_string[0], starta, base, up, false);
-        graphics.draw(((DisplayImplJ3D) getDisplay()).makeGeometry(array));
+        graphics.draw(((DisplayImplA3D) getDisplay()).makeGeometry(array));
         starta[1] -= 1.2 * up[1];
         if (animation_string[1] != null) {
           array =
             PlotText.render_label(animation_string[1], starta, base, up, false);
-          graphics.draw(((DisplayImplJ3D) getDisplay()).makeGeometry(array));
+          graphics.draw(((DisplayImplA3D) getDisplay()).makeGeometry(array));
           starta[1] -= 1.2 * up[1];
         }
       }
@@ -1144,7 +1145,8 @@ public abstract class DisplayRendererA3D
     }
 
     if (scale_switch != null && scale_switch.getWhichChild() == 1) {
-      Dimension d = canvas.getSize();
+      Dimension d = null;
+      //Dimension d = canvas.getSize();
       int w = d.width;
       int h = d.height;
 
@@ -1189,13 +1191,13 @@ public abstract class DisplayRendererA3D
             color.setColor(new Color3f(scale_color));
             appearance.setColoringAttributes(color);
             graphics.setAppearance(appearance);
-            graphics.draw(((DisplayImplJ3D) getDisplay()).makeGeometry(array));
+            graphics.draw(((DisplayImplA3D) getDisplay()).makeGeometry(array));
 
             if (labels != null) {
               GeometryArray labelGeometry = 
-                ((DisplayImplJ3D) getDisplay()).makeGeometry(labels);
+                ((DisplayImplA3D) getDisplay()).makeGeometry(labels);
               Appearance labelAppearance =
-                ShadowTypeJ3D.staticMakeAppearance(
+                ShadowTypeA3D.staticMakeAppearance(
                     getDisplay().getGraphicsModeControl(), null, null, 
                     labelGeometry, true);
               graphics.setAppearance(labelAppearance);
@@ -1351,13 +1353,13 @@ public abstract class DisplayRendererA3D
 // DisplayImpl.printStack("setScale");
     // add array to scale_on
     // replace any existing at axis, axis_ordinal
-    DisplayImplJ3D display = (DisplayImplJ3D) getDisplay();
+    DisplayImplA3D display = (DisplayImplA3D) getDisplay();
     GeometryArray geometry = display.makeGeometry(array);
     GraphicsModeControl mode = display.getGraphicsModeControl();
     ColoringAttributes color = new ColoringAttributes();
     color.setColor(scale_color[0], scale_color[1], scale_color[2]);
     Appearance appearance =
-      ShadowTypeJ3D.staticMakeAppearance(mode, null, color, geometry, false);
+      ShadowTypeA3D.staticMakeAppearance(mode, null, color, geometry, false);
     Shape3D shape = new Shape3D(geometry, appearance);
     shape.setCapability(Shape3D.ALLOW_GEOMETRY_READ);
     shape.setCapability(Shape3D.ALLOW_APPEARANCE_READ);
@@ -1368,7 +1370,7 @@ public abstract class DisplayRendererA3D
     if (labels != null) {
       GeometryArray labelGeometry = display.makeGeometry(labels);
       Appearance labelAppearance =
-        ShadowTypeJ3D.staticMakeAppearance(mode, null, null,
+        ShadowTypeA3D.staticMakeAppearance(mode, null, null,
                                            labelGeometry, true);
       Shape3D labelShape = new Shape3D(labelGeometry, labelAppearance);
       labelShape.setCapability(Shape3D.ALLOW_GEOMETRY_READ);
@@ -1380,7 +1382,7 @@ public abstract class DisplayRendererA3D
       if (labels instanceof VisADTriangleArray) {
         GeometryArray labelGeometry2 = display.makeGeometry(labels);
         Appearance labelAppearance2 =
-          ShadowTypeJ3D.staticMakeAppearance(mode, null, null,
+          ShadowTypeA3D.staticMakeAppearance(mode, null, null,
                                              labelGeometry2, true);
 
         // LineAttributes la = labelAppearance2.getLineAttributes();
@@ -1511,7 +1513,7 @@ public abstract class DisplayRendererA3D
   public Control makeControl(ScalarMap map) {
     if (not_destroyed == null) return null;
     DisplayRealType type = map.getDisplayScalar();
-    DisplayImplJ3D display = (DisplayImplJ3D) getDisplay();
+    DisplayImplA3D display = (DisplayImplA3D) getDisplay();
     if (type == null) return null;
     if (type.equals(Display.XAxis) ||
         type.equals(Display.YAxis) ||
@@ -1519,7 +1521,7 @@ public abstract class DisplayRendererA3D
         type.equals(Display.Latitude) ||
         type.equals(Display.Longitude) ||
         type.equals(Display.Radius)) {
-      return (ProjectionControlJ3D) display.getProjectionControl();
+      return (ProjectionControlA3D) display.getProjectionControl();
     }
     else if (type.equals(Display.RGB) ||
              type.equals(Display.HSV) ||
@@ -1637,11 +1639,11 @@ public abstract class DisplayRendererA3D
   }
 
   public int getTextureWidthMax() {
-    return VisADCanvasJ3D.getTextureWidthMax();
+    return VisADCanvasA3D.getTextureWidthMax();
   }
 
   public int getTextureHeightMax() {
-    return VisADCanvasJ3D.getTextureWidthMax();
+    return VisADCanvasA3D.getTextureWidthMax();
   }
 
 }

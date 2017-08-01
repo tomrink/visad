@@ -299,6 +299,10 @@ public class VisADCanvasA3D {
   public boolean getOffscreen() {
     return offscreen;
   }
+  
+  public void setDoubleBufferEnable(boolean enabled) {
+     
+  }
 
   /**
    * Render the readout for the field at index.

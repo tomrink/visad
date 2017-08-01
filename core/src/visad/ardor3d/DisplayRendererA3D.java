@@ -149,10 +149,10 @@ public abstract class DisplayRendererA3D
   private TransformGroup vpTrans = null;
 
   /** MouseBehaviorJ3D */
-  private MouseBehaviorJ3D mouse = null;
+  private MouseBehaviorA3D mouse = null;
 
   /** KeyboardBehaviorJ3D */
-  private KeyboardBehaviorJ3D keyboard = null;
+  private KeyboardBehaviorA3D keyboard = null;
 
   /** color of box and cursor */
   private ColoringAttributes box_color = null;
@@ -275,7 +275,7 @@ public abstract class DisplayRendererA3D
    * Get the canvas for this renderer
    * @return  <CODE>VisADCanvasJ3D</CODE> that this renderer uses.
    */
-  public VisADCanvasJ3D getCanvas() {
+  public VisADCanvasA3D getCanvas() {
     return canvas;
   }
 
@@ -538,7 +538,7 @@ public abstract class DisplayRendererA3D
          ColoringAttributes cc)
       instead */
   public BranchGroup createBasicSceneGraph(View v, TransformGroup vpt,
-         VisADCanvasJ3D c, MouseBehaviorJ3D m) {
+         VisADCanvasA3D c, MouseBehaviorA3D m) {
     if (not_destroyed == null) return null;
     box_color = new ColoringAttributes();
     box_color.setCapability(ColoringAttributes.ALLOW_COLOR_READ);
@@ -559,7 +559,7 @@ public abstract class DisplayRendererA3D
    * @return Scene graph root.
    */
   public BranchGroup createBasicSceneGraph(View v, TransformGroup vpt,
-         VisADCanvasA3D c, MouseBehaviorJ3D m, ColoringAttributes bc,
+         VisADCanvasA3D c, MouseBehaviorA3D m, ColoringAttributes bc,
          ColoringAttributes cc) {
     if (root != null) return root;
     if (not_destroyed == null) return null;
@@ -884,7 +884,7 @@ public abstract class DisplayRendererA3D
 
 
   public void addDirectManipulationSceneGraphComponent(Group group,
-                         DirectManipulationRendererJ3D renderer) {
+                         DirectManipulationRendererA3D renderer) {
     if (not_destroyed == null) return;
     // WLH 13 March 2000
     // direct.addChild(group);
@@ -1611,7 +1611,7 @@ public abstract class DisplayRendererA3D
    * translation and zoom.  
    * @param  behavior  keyboard behavior to add
    */
-  public void addKeyboardBehavior(KeyboardBehaviorJ3D behavior)
+  public void addKeyboardBehavior(KeyboardBehaviorA3D behavior)
   {
     if (not_destroyed == null) return;
     BranchGroup bg = new BranchGroup();

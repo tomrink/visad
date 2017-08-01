@@ -56,7 +56,7 @@ public class VisADCanvasA3D {
   private DisplayRendererA3D displayRenderer;
 
   /**           */
-  private DisplayImplJ3D display;
+  private DisplayImplA3D display;
 
   /**           */
   private Component component;
@@ -218,7 +218,7 @@ public class VisADCanvasA3D {
 
     setTextureProperties();
     displayRenderer = renderer;
-    display = (DisplayImplJ3D)renderer.getDisplay();
+    display = (DisplayImplA3D)renderer.getDisplay();
     component = null;
   }
 
@@ -288,7 +288,7 @@ public class VisADCanvasA3D {
    */
   void setDisplay() {
     if (display == null) {
-      display = (DisplayImplJ3D)displayRenderer.getDisplay();
+      display = (DisplayImplA3D)displayRenderer.getDisplay();
     }
   }
 
@@ -351,7 +351,7 @@ public class VisADCanvasA3D {
           try {
             //Check if the display is null. We get this when doing off screen
             //image capture from the IDV
-            DisplayImplJ3D tmpDisplay = display;
+            DisplayImplA3D tmpDisplay = display;
             if (tmpDisplay != null) {
               tmpDisplay.notifyListeners(DisplayEvent.FRAME_DONE, 0, 0);
             }
@@ -418,7 +418,7 @@ public class VisADCanvasA3D {
    */
   public static void main(String[] args)
           throws RemoteException, VisADException {
-    DisplayImplJ3D display = new DisplayImplJ3D("offscreen", 300, 300);
+    DisplayImplA3D display = new DisplayImplA3D("offscreen", 300, 300);
 
     RealType[] types = {RealType.Latitude, RealType.Longitude};
     RealTupleType earth_location = new RealTupleType(types);
@@ -490,11 +490,8 @@ public class VisADCanvasA3D {
     displayRenderer = null;
     if (component != null) {
       try {
-        if (component instanceof DisplayPanelJ3D) {
-          ((DisplayPanelJ3D)component).destroy();
-        }
-        else if (component instanceof DisplayAppletJ3D) {
-          ((DisplayAppletJ3D)component).destroy();
+        if (component instanceof DisplayPanelA3D) {
+          ((DisplayPanelA3D)component).destroy();
         }
       }
       catch (Exception exc) {

@@ -1225,12 +1225,12 @@ public abstract class DisplayRendererA3D
    */
   public DataRenderer findDirect(VisADRay ray, int mouseModifiers) {
     if (not_destroyed == null) return null;
-    DirectManipulationRendererJ3D renderer = null;
+    DirectManipulationRendererA3D renderer = null;
     float distance = Float.MAX_VALUE;
     Enumeration renderers = ((Vector) directs.clone()).elements();
     while (renderers.hasMoreElements()) {
-      DirectManipulationRendererJ3D r =
-        (DirectManipulationRendererJ3D) renderers.nextElement();
+      DirectManipulationRendererA3D r =
+        (DirectManipulationRendererA3D) renderers.nextElement();
       if (r.getEnabled()) {
         r.setLastMouseModifiers(mouseModifiers);
         float d = r.checkClose(ray.position, ray.vector);
@@ -1534,12 +1534,19 @@ public abstract class DisplayRendererA3D
     else if (type.equals(Display.Animation)) {
       // note only one RealType may be mapped to Animation
       // so control must be null
-      Control control = display.getControl(AnimationControlJ3D.class);
-      if (control != null) return control;
-      else return new AnimationControlJ3D(display, (RealType) map.getScalar());
+      Control control = null;
+      //Control control = display.getControl(AnimationControlJ3D.class);
+      if (control != null) {
+         return control;
+      }
+      else {
+         return null;
+         //return new AnimationControlJ3D(display, (RealType) map.getScalar());
+      }
     }
     else if (type.equals(Display.SelectValue)) {
-      return new ValueControlJ3D(display);
+      return null;
+      //return new ValueControlJ3D(display);
     }
     else if (type.equals(Display.SelectRange)) {
       return new RangeControl(display);
@@ -1584,7 +1591,8 @@ public abstract class DisplayRendererA3D
    * @return  new default renderer
    */
   public DataRenderer makeDefaultRenderer() {
-    return new DefaultRendererJ3D();
+    return null;
+    //return new DefaultRendererJ3D();
   }
 
   /**
@@ -1594,7 +1602,7 @@ public abstract class DisplayRendererA3D
    * @return  true if renderer is a subclass of <CODE>RendererJ3D</CODE>
    */
   public boolean legalDataRenderer(DataRenderer renderer) {
-    return (renderer instanceof RendererJ3D);
+    return (renderer instanceof RendererA3D);
   }
 
   public void rendererDeleted(DataRenderer renderer)

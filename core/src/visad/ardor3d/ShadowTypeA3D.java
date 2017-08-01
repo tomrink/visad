@@ -73,13 +73,13 @@ public abstract class ShadowTypeA3D extends ShadowType {
   transient DataDisplayLink Link;
 
   /**  */
-  transient DisplayImplJ3D display;
+  transient DisplayImplA3D display;
 
   /**  */
   transient private Data data; // from Link.getData()
 
   /**  */
-  private ShadowTypeJ3D Parent;
+  private ShadowTypeA3D Parent;
 
   // String and TextControl to pass on to children
 
@@ -115,8 +115,8 @@ public abstract class ShadowTypeA3D extends ShadowType {
     super(type, link, getAdaptedParent(parent));
     Type = type;
     Link = link;
-    display = (DisplayImplJ3D) link.getDisplay();
-    Parent = (ShadowTypeJ3D) parent;
+    display = (DisplayImplA3D) link.getDisplay();
+    Parent = (ShadowTypeA3D) parent;
     data = link.getData();
   }
 
@@ -420,7 +420,7 @@ public abstract class ShadowTypeA3D extends ShadowType {
   public Appearance makeAppearance(GraphicsModeControl mode,
       TransparencyAttributes constant_alpha, ColoringAttributes constant_color,
       GeometryArray geometry, boolean no_material) {
-    return ShadowTypeJ3D.staticMakeCachedAppearance(mode, constant_alpha,
+    return ShadowTypeA3D.staticMakeCachedAppearance(mode, constant_alpha,
         constant_color, geometry, no_material, false);
   }
 
@@ -447,7 +447,7 @@ public abstract class ShadowTypeA3D extends ShadowType {
   private Appearance makeCachedAppearance(GraphicsModeControl mode,
       TransparencyAttributes constant_alpha, ColoringAttributes constant_color,
       GeometryArray geometry, boolean no_material, boolean okToCache) {
-    return ShadowTypeJ3D.staticMakeCachedAppearance(mode, constant_alpha,
+    return ShadowTypeA3D.staticMakeCachedAppearance(mode, constant_alpha,
         constant_color, geometry, no_material, okToCache);
   }
 
@@ -664,7 +664,7 @@ public abstract class ShadowTypeA3D extends ShadowType {
     line.setCapability(LineAttributes.ALLOW_PATTERN_READ);
     line.setCapability(LineAttributes.ALLOW_WIDTH_READ);
     line.setLineWidth(mode.getLineWidth());
-    int pattern = GraphicsModeControlJ3D.LINE_PATTERN[mode.getLineStyle()];
+    int pattern = GraphicsModeControlA3D.LINE_PATTERN[mode.getLineStyle()];
     line.setLinePattern(pattern);
     appearance.setLineAttributes(line);
 
@@ -716,7 +716,7 @@ public abstract class ShadowTypeA3D extends ShadowType {
     // );
     // rendering.setCapability(RenderingAttributes.ALLOW_RASTER_OP_READ);
     // rendering.setCapability(RenderingAttributes.ALLOW_VISIBLE_READ);
-    rendering.setDepthBufferEnable(((GraphicsModeControlJ3D)mode).getDepthBufferEnable());
+    rendering.setDepthBufferEnable(((GraphicsModeControlA3D)mode).getDepthBufferEnable());
     appearance.setRenderingAttributes(rendering);
 
     if (constant_color != null) {
@@ -1554,7 +1554,7 @@ class ProjectionControlListener implements ControlListener {
     double[] rot_a = new double[3];
     double[] trans_a = new double[3];
     double[] scale_a = new double[1];
-    MouseBehaviorJ3D.unmake_matrix(rot_a, scale_a, trans_a, matrix);
+    MouseBehaviorA3D.unmake_matrix(rot_a, scale_a, trans_a, matrix);
     last_scale = scale_a[0];
     first_scale = last_scale;
     LT_array = new LabelTransform[1000][][];
@@ -1578,7 +1578,7 @@ class ProjectionControlListener implements ControlListener {
     double[] trans_a = new double[3];
     double[] scale_a = new double[1];
 
-    MouseBehaviorJ3D.unmake_matrix(rot_a, scale_a, trans_a, matrix);
+    MouseBehaviorA3D.unmake_matrix(rot_a, scale_a, trans_a, matrix);
 
     // - identify scale change events.
     if (!visad.util.Util.isApproximatelyEqual(scale_a[0], last_scale)) {
@@ -1689,7 +1689,7 @@ class LabelTransform {
     rot_a = new double[3];
     trans_a = new double[3];
     scale_a = new double[1];
-    MouseBehaviorJ3D.unmake_matrix(rot_a, scale_a, trans_a, matrix);
+    MouseBehaviorA3D.unmake_matrix(rot_a, scale_a, trans_a, matrix);
     last_scale = scale_a[0];
     first_scale = last_scale;
 

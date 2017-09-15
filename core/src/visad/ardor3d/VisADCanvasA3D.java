@@ -1,5 +1,5 @@
 //
-// VisADCanvasJ3D.java
+// VisADCanvasA3D.java
 //
 
 /*
@@ -44,11 +44,10 @@ import java.awt.Graphics;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
-import com.sun.j3d.utils.universe.SimpleUniverse;
 
 
 /**
-   VisADCanvasJ3D is the VisAD extension of Canvas3D
+   VisADCanvasA3D a temporary standin for VisADCanvasJ3D
 */
 public class VisADCanvasA3D {
 
@@ -207,11 +206,13 @@ public class VisADCanvasA3D {
    */
   public VisADCanvasA3D(DisplayRendererA3D renderer,
                         GraphicsConfiguration config) {
+    /*
     super(config == null
           ? defaultConfig = (defaultConfig == null
                              ? makeConfig(false)
                              : defaultConfig)
           : config);
+    */
     myConfig = (config == null)
                ? defaultConfig
                : config;
@@ -257,9 +258,11 @@ public class VisADCanvasA3D {
      *      "and un-comment the body of this constructor\n");
      */
 // AND comment out the rest of this constructor,
+    /*
     super(defaultConfig = (defaultConfig == null
                            ? makeConfig(true)
                            : defaultConfig), true);
+    */
     myConfig = defaultConfig;
     setTextureProperties();
     displayRenderer = renderer;
@@ -270,6 +273,7 @@ public class VisADCanvasA3D {
     height = h;
     BufferedImage image = new BufferedImage(width, height,
                                             BufferedImage.TYPE_INT_RGB);
+    /* will need to handle this for Ardor3D
     ImageComponent2D image2d =
       new ImageComponent2D(ImageComponent2D.FORMAT_RGB, image);
     setOffScreenBuffer(image2d);
@@ -281,6 +285,7 @@ public class VisADCanvasA3D {
     double height_in_meters = screen_height * METER_RATIO;
     screen.setPhysicalScreenWidth(width_in_meters);
     screen.setPhysicalScreenHeight(height_in_meters);
+    */
   }
 
   /**
@@ -491,7 +496,9 @@ public class VisADCanvasA3D {
     stopCalled = true;
 
     if (!offscreen) {
+      /* Java3D specific
       stopRenderer();
+      */
     }
     display = null;
     displayRenderer = null;

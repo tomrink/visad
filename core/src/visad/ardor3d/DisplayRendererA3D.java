@@ -596,24 +596,6 @@ public abstract class DisplayRendererA3D
     background.setApplicationBounds(bound2);
     root.addChild(background);
 
-/* WLH 13 April 99 - does nothing
-    BoundingBox boundingbox =
-      new BoundingBox(new Point3d(-1.0, -1.0, -1.0),
-                      new Point3d(1.0, 1.0, 1.0));
-    trans.addChild(new BoundingLeaf(boundingbox));
-*/
-
-/* WLH 13 Macrh 2000
-    // create the BranchGroup that is the parent of direct
-    // manipulation Data object BranchGroup objects
-    direct = new BranchGroup();
-    direct.setCapability(Group.ALLOW_CHILDREN_READ);
-    direct.setCapability(Group.ALLOW_CHILDREN_WRITE);
-    direct.setCapability(Group.ALLOW_CHILDREN_EXTEND);
-    direct.setCapability(Node.ENABLE_PICK_REPORTING);
-    trans.addChild(direct);
-*/
-
     // WLH 10 March 2000
     non_direct = new OrderedGroup();
     setSceneGraphObjectName(non_direct, "NonDirect");
@@ -1459,6 +1441,10 @@ public abstract class DisplayRendererA3D
       empty.setCapability(BranchGroup.ALLOW_CHILDREN_READ);
       scale_on.setChild(empty, m);
     }
+  }
+  
+  public void setProjectionPolicy(int projectionPolicy) {
+     
   }
 
   public void setTransform3D(Transform3D t) {

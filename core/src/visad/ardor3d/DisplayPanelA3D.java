@@ -36,7 +36,7 @@ public class DisplayPanelA3D extends JPanel {
 
   private DisplayImplA3D display;
   private DisplayRendererA3D renderer;
-  private UniverseBuilderJ3D universe;
+  //private UniverseBuilderJ3D universe;
   private VisADCanvasA3D canvas;
 
   public DisplayPanelA3D(DisplayImplA3D d) {
@@ -50,12 +50,12 @@ public class DisplayPanelA3D extends JPanel {
     setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
     canvas = (c != null) ? c : new VisADCanvasA3D(renderer, config);
     canvas.setComponent(this);
-    add(canvas);
+    //add(canvas);
 
-    universe = new UniverseBuilderJ3D(canvas);
-    BranchGroup scene =
-      renderer.createSceneGraph(universe.view, universe.vpTrans, canvas);
-    universe.addBranchGraph(scene);
+    //universe = new UniverseBuilderJ3D(canvas);
+    //BranchGroup scene =
+    //  renderer.createSceneGraph(universe.view, universe.vpTrans, canvas);
+    //universe.addBranchGraph(scene);
 
     setPreferredSize(new java.awt.Dimension(256, 256));
     setMinimumSize(new java.awt.Dimension(0, 0));
@@ -63,17 +63,17 @@ public class DisplayPanelA3D extends JPanel {
 
   public void setVisible(boolean v){
     super.setVisible(v);
-    canvas.setVisible(v);
+    //canvas.setVisible(v);
   }
 
   public void destroy() {
     canvas = null;
     display = null;
     renderer = null;
-    if (universe != null) {
-      universe.destroy();
-      universe = null;
-    }
+    //if (universe != null) {
+    //  universe.destroy();
+    //  universe = null;
+    //}
   }
 
 }

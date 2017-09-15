@@ -26,6 +26,8 @@ MA 02111-1307, USA
 
 package visad.ardor3d;
 
+import com.ardor3d.renderer.Camera;
+
 import visad.*;
 
 import java.rmi.*;
@@ -43,10 +45,8 @@ public class GraphicsModeControlA3D extends GraphicsModeControl {
 
   /** maps GraphicsModeControl line styles to LineAttributes line patterns */
   static final int[] LINE_PATTERN = {
-    LineAttributes.PATTERN_SOLID, LineAttributes.PATTERN_DASH,
-    LineAttributes.PATTERN_DOT, LineAttributes.PATTERN_DASH_DOT
-  };
-
+    SOLID_STYLE, DASH_STYLE, DOT_STYLE, DASH_DOT_STYLE };
+  
   /** for LineAttributes; >= 1.0  @serial */
   private float lineWidth;
   /** for PointAttributes; >= 1.0  @serial */
@@ -118,24 +118,24 @@ public class GraphicsModeControlA3D extends GraphicsModeControl {
     // NICEST, FASTEST and BLENDED do not solve the depth precedence problem
     // note SCREEN_DOOR does not seem to work with variable transparency
     // transparencyMode = TransparencyAttributes.NICEST;
-    transparencyMode = TransparencyAttributes.FASTEST;
+    transparencyMode = DisplayImplA3D.FASTEST;
     // transparencyMode = TransparencyAttributes.BLENDED;
     // transparencyMode = TransparencyAttributes.SCREEN_DOOR;
-    polygonMode = PolygonAttributes.POLYGON_FILL;
+    polygonMode = DisplayImplA3D.POLYGON_FILL;
     polygonOffset = Float.NaN;
     polygonOffsetFactor = 0f;
     adjustProjectionSeam = true;
     texture3DMode = STACK2D;
 
-    projectionPolicy = View.PERSPECTIVE_PROJECTION;
-    DisplayRendererJ3D displayRenderer =
-      (DisplayRendererJ3D) getDisplayRenderer();
+    projectionPolicy = Camera.ProjectionMode.Perspective.ordinal();
+    DisplayRendererA3D displayRenderer =
+      (DisplayRendererA3D) getDisplayRenderer();
     if (displayRenderer != null) {
       if (displayRenderer.getMode2D()) {
-        projectionPolicy = View.PARALLEL_PROJECTION;
+        projectionPolicy = Camera.ProjectionMode.Parallel.ordinal();
         // for some strange reason, if we set PERSPECTIVE_PROJECTION at this
         // point, we can never set PARALLEL_PROJECTION
-        displayRenderer.getView().setProjectionPolicy(projectionPolicy);
+        displayRenderer.setProjectionPolicy(projectionPolicy);
       }
     }
   }
@@ -176,7 +176,7 @@ public class GraphicsModeControlA3D extends GraphicsModeControl {
     lineWidth = width;
 
     // WLH 2 Dec 2002 in response to qomo2.txt
-    DisplayRendererJ3D dr = (DisplayRendererJ3D) getDisplayRenderer();
+    DisplayRendererA3D dr = (DisplayRendererA3D) getDisplayRenderer();
     dr.setLineWidth(width);
 
     changeControl(true);
@@ -403,11 +403,11 @@ public class GraphicsModeControlA3D extends GraphicsModeControl {
   public void setTransparencyMode(int mode)
          throws VisADException, RemoteException {
     if (mode == transparencyMode) return;
-    if (mode == TransparencyAttributes.SCREEN_DOOR ||
-        mode == TransparencyAttributes.BLENDED ||
-        mode == TransparencyAttributes.NONE ||
-        mode == TransparencyAttributes.FASTEST ||
-        mode == TransparencyAttributes.NICEST) {
+    if (mode == DisplayImplA3D.SCREEN_DOOR ||
+        mode == DisplayImplA3D.BLENDED ||
+        mode == DisplayImplA3D.NONE ||
+        mode == DisplayImplA3D.FASTEST ||
+        mode == DisplayImplA3D.NICEST) {
       transparencyMode = mode;
       changeControl(true);
       getDisplay().reDisplayAll();
@@ -433,13 +433,13 @@ public class GraphicsModeControlA3D extends GraphicsModeControl {
   public void setProjectionPolicy(int policy)
          throws VisADException, RemoteException {
     if (policy == projectionPolicy) return;
-    if (policy == View.PARALLEL_PROJECTION ||
-        policy == View.PERSPECTIVE_PROJECTION) {
+    if (policy == Camera.ProjectionMode.Parallel.ordinal() ||
+        policy == Camera.ProjectionMode.Perspective.ordinal()) {
       projectionPolicy = policy;
-      DisplayRendererJ3D displayRenderer =
-        (DisplayRendererJ3D) getDisplayRenderer();
+      DisplayRendererA3D displayRenderer =
+        (DisplayRendererA3D) getDisplayRenderer();
       if (displayRenderer != null) {
-        displayRenderer.getView().setProjectionPolicy(projectionPolicy);
+        displayRenderer.setProjectionPolicy(projectionPolicy);
       }
       changeControl(true);
       getDisplay().reDisplayAll();
@@ -472,8 +472,8 @@ public class GraphicsModeControlA3D extends GraphicsModeControl {
          throws VisADException, RemoteException {
     if (flag == anti_alias_flag) return;
     anti_alias_flag = flag;
-    DisplayRendererJ3D displayRenderer =
-      (DisplayRendererJ3D) getDisplayRenderer();
+    DisplayRendererA3D displayRenderer =
+      (DisplayRendererA3D) getDisplayRenderer();
     if (displayRenderer != null) {
       displayRenderer.getView().setSceneAntialiasingEnable(anti_alias_flag);
     }
@@ -494,8 +494,8 @@ public class GraphicsModeControlA3D extends GraphicsModeControl {
    * Sets the polygon rasterization mode.
    *
    * @param  mode   the polygon rasterization mode to be used; one of
-   *                DisplayImplJ3D.POLYGON_FILL, DisplayImplJ3D.POLYGON_LINE,
-   *                or DisplayImplJ3D.POLYGON_POINT
+   *                DisplayImplA3D.POLYGON_FILL, DisplayImplA3D.POLYGON_LINE,
+   *                or DisplayImplA3D.POLYGON_POINT
    *
    * @throws  VisADException   bad mode or can't create the necessary VisAD
    *                           object
@@ -504,9 +504,9 @@ public class GraphicsModeControlA3D extends GraphicsModeControl {
   public void setPolygonMode(int mode)
          throws VisADException, RemoteException {
     if (mode == polygonMode) return;
-    if (mode == PolygonAttributes.POLYGON_FILL ||
-        mode == PolygonAttributes.POLYGON_LINE ||
-        mode == PolygonAttributes.POLYGON_POINT) {
+    if (mode == DisplayImplA3D.POLYGON_FILL ||
+        mode == DisplayImplA3D.POLYGON_LINE ||
+        mode == DisplayImplA3D.POLYGON_POINT) {
       polygonMode = mode;
       changeControl(true);
       getDisplay().reDisplayAll();
@@ -532,9 +532,9 @@ public class GraphicsModeControlA3D extends GraphicsModeControl {
   public void setPolygonMode(int mode, boolean noChange)
          throws VisADException, RemoteException {
     if (mode == polygonMode) return;
-    if (mode == PolygonAttributes.POLYGON_FILL ||
-        mode == PolygonAttributes.POLYGON_LINE ||
-        mode == PolygonAttributes.POLYGON_POINT) {
+    if (mode == DisplayImplA3D.POLYGON_FILL ||
+        mode == DisplayImplA3D.POLYGON_LINE ||
+        mode == DisplayImplA3D.POLYGON_POINT) {
       polygonMode = mode;
     }
   }
@@ -656,7 +656,7 @@ public class GraphicsModeControlA3D extends GraphicsModeControl {
    */
   public void setAutoDepthOffsetEnable(boolean enable) throws VisADException, RemoteException {
     this.autoDepthOffsetEnable = enable;
-    ((DisplayImplJ3D)getDisplay()).resetDepthBufferOffsets();
+    ((DisplayImplA3D)getDisplay()).resetDepthBufferOffsets();
     changeControl(true);
     getDisplay().reDisplayAll();
   }
@@ -679,7 +679,7 @@ public class GraphicsModeControlA3D extends GraphicsModeControl {
   public void setNumRenderersWithDepthOffset(int numWith, boolean noChange) throws VisADException, RemoteException {
     this.maxNumWithOffset = numWith;
     if (!noChange) {
-      ((DisplayImplJ3D)getDisplay()).resetDepthBufferOffsets();
+      ((DisplayImplA3D)getDisplay()).resetDepthBufferOffsets();
       changeControl(true);
       getDisplay().reDisplayAll();
     }
@@ -700,7 +700,7 @@ public class GraphicsModeControlA3D extends GraphicsModeControl {
   public void setDepthOffsetIncrement(float inc, boolean noChange) throws VisADException, RemoteException {
     this.depthOffsetInc = inc;
     if (!noChange) {
-      ((DisplayImplJ3D)getDisplay()).resetDepthBufferOffsets();
+      ((DisplayImplA3D)getDisplay()).resetDepthBufferOffsets();
       changeControl(true);
       getDisplay().reDisplayAll();
     }  
@@ -951,10 +951,10 @@ public class GraphicsModeControlA3D extends GraphicsModeControl {
       redisplay = true;
       projectionPolicy = rmtCtl.projectionPolicy;
 
-      DisplayRendererJ3D displayRenderer;
-      displayRenderer = (DisplayRendererJ3D) getDisplayRenderer();
+      DisplayRendererA3D displayRenderer;
+      displayRenderer = (DisplayRendererA3D) getDisplayRenderer();
       if (displayRenderer != null) {
-        displayRenderer.getView().setProjectionPolicy(projectionPolicy);
+        displayRenderer.setProjectionPolicy(projectionPolicy);
       }
     }
     if (polygonMode != rmtCtl.polygonMode) {

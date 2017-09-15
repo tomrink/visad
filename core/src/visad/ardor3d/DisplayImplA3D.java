@@ -1,5 +1,5 @@
 //
-// DisplayImplJ3D.java
+// DisplayImplA3D.java
 //
 
 /*
@@ -24,45 +24,9 @@ Software Foundation, Inc., 59 Temple Place - Suite 330, Boston,
 MA 02111-1307, USA
 */
 
-/*
-MEMORY LEAK
-
-DisplayImplJ3D.destrory()
-  DisplayRendererJ3D.destroy()
-    VisADCanvasJ3D.stop()
-      stopRenderer()
-      DisplayPanelJ3D.destroy()
-        display, renderer = null;
-        universe.destroy()
-      DisplayAppletJ3D.destroy()
-        display, renderer = null;
-        universe.destroy()
-      display, component = null
-    MouseBehaviorJ3D.destroy()
-      helper, display, display_renderer = null
-    root.detach()
-    root, trans, vpTrans, non_direct, view, canvas = null
-  DisplayImpl.destroy()
-    stop()
-      removeThingChangedListener() for all links
-      LinkVector.removeAllElements()
-      pool.queue(this)
-      run_links = null
-    DisplayActivity.destroy()
-    notify listeners
-    remove all listeners
-    clearMaps()
-      check RendererVector empty
-      MapVector.removeAllElements()
-      ConstantMapVector.removeAllElements()
-      RealTypeVector.removeAllElements()
-    AnimationControlJ3D.stop()
-      animationThread = null // causes run() to exit
-  applet, projection, mode = null;
-
-*/
-
 package visad.ardor3d;
+
+import com.ardor3d.renderer.Camera;
 
 import visad.*;
 
@@ -71,7 +35,6 @@ import java.rmi.*;
 import java.awt.*;
 
 import javax.media.j3d.*;
-import com.sun.j3d.utils.applet.MainFrame;
 import java.util.Iterator;
 import java.util.Vector;
 // import com.sun.j3d.utils.applet.AppletFrame;
@@ -95,49 +58,41 @@ public class DisplayImplA3D extends DisplayImpl {
    * @see GraphicsModeControlJ3D#setProjectionPolicy
    */
   public static final int PARALLEL_PROJECTION =
-    javax.media.j3d.View.PARALLEL_PROJECTION;
+    Camera.ProjectionMode.Parallel.ordinal();
 
   /**
    * Use a perspective projection view. This is the default.
    * @see GraphicsModeControlJ3D#setProjectionPolicy
    */
   public static final int PERSPECTIVE_PROJECTION =
-    javax.media.j3d.View.PERSPECTIVE_PROJECTION;
+    Camera.ProjectionMode.Parallel.ordinal();
 
   /** Render polygonal primitives by filling the interior of the polygon
       @see GraphicsModeControlJ3D#setPolygonMode */
-  public static final int POLYGON_FILL =
-    javax.media.j3d.PolygonAttributes.POLYGON_FILL;
+  public static final int POLYGON_FILL = 0;
 
   /**
    * Render polygonal primitives as lines drawn between consecutive vertices
    * of the polygon.
    * @see GraphicsModeControlJ3D#setPolygonMode
    */
-  public static final int POLYGON_LINE =
-    javax.media.j3d.PolygonAttributes.POLYGON_LINE;
+  public static final int POLYGON_LINE = 1;
 
   /**
    * Render polygonal primitives as points drawn at the vertices of
    * the polygon.
    * @see GraphicsModeControlJ3D#setPolygonMode
    */
-  public static final int POLYGON_POINT =
-    javax.media.j3d.PolygonAttributes.POLYGON_POINT;
-
+  public static final int POLYGON_POINT = 2;
+  
   /**
-   * Use the nicest available method for transparency.
-   * @see GraphicsModeControlJ3D#setTransparencyMode
+   * Transparency attributes. 
    */
-  public static final int NICEST =
-    javax.media.j3d.TransparencyAttributes.NICEST;
-
-  /**
-   * Use the fastest available method for transparency.
-   * @see GraphicsModeControlJ3D#setTransparencyMode
-   */
-  public static final int FASTEST =
-    javax.media.j3d.TransparencyAttributes.FASTEST;
+  public static final int SCREEN_DOOR = 0;
+  public static final int BLENDED = 1;
+  public static final int NONE = 2;
+  public static final int FASTEST = 3;
+  public static final int NICEST = 4;
 
   /** Field for specifying unknown API type */
   public static final int UNKNOWN = 0;
@@ -145,8 +100,6 @@ public class DisplayImplA3D extends DisplayImpl {
   public static final int JPANEL = 1;
   /** Field for specifying that the DisplayImpl does not have a screen Component */
   public static final int OFFSCREEN = 2;
-  /** Field for specifying that the DisplayImpl be created in an Applet */
-  public static final int APPLETFRAME = 3;
   /** Field for specifying that the DisplayImpl transforms but does not render */
   public static final int TRANSFORM_ONLY = 4;
 
@@ -187,20 +140,6 @@ public class DisplayImplA3D extends DisplayImpl {
     //System.err.println("TEXTURE_NPOT:"+TEXTURE_NPOT);
   }
   
-  /**
-   * Workaround for Java3D "grey window problem": sometimes Canvas3D is not painted
-   * This problem is rare and often hard to reproduce, so it is disabled by default.
-   */
-  public static final String NO_ERASE_BACKGROUND = "visad.java3d.noerasebackground";
-  static {
-    if (Boolean.parseBoolean(System.getProperty(NO_ERASE_BACKGROUND, "false"))) {
-      System.setProperty("sun.awt.noerasebackground", "true");
-      // If setting the above, suggested by Jogamp to set this to a small non-zero value. (TDR)
-      /*
-      UniverseBuilderJ3D.setMinimumFrameCycleTime(20);
-      */
-    }
-  }
 
   private ProjectionControlA3D projection = null;
   private GraphicsModeControlA3D mode = null;
@@ -393,7 +332,7 @@ public class DisplayImplA3D extends DisplayImpl {
 
 
     if (api == JPANEL) {
-      Component component = new DisplayPanelJ3D(this, config, c);
+      Component component = new DisplayPanelA3D(this, config, c);
       setComponent(component);
       apiValue = api;
     }
@@ -409,18 +348,11 @@ public class DisplayImplA3D extends DisplayImpl {
       DisplayRendererA3D renderer = (DisplayRendererA3D) getDisplayRenderer();
       VisADCanvasA3D canvas = (c != null) ? c :
                               new VisADCanvasA3D(renderer, width, height);
-      /* TDR, keep temporarily for reference 
-      universe = new UniverseBuilderJ3D(canvas);
-      BranchGroup scene =
-        renderer.createSceneGraph(universe.view, universe.vpTrans, canvas);
-      universe.addBranchGraph(scene);
-      */
-
       setComponent(null);
       apiValue = api;
     }
     else {
-      throw new DisplayException("DisplayImplJ3D: bad graphics API " + api);
+      throw new DisplayException("DisplayImplA3D: bad graphics API " + api);
     }
     if (api != TRANSFORM_ONLY) {
       // initialize projection and set Display in Canvas
@@ -435,14 +367,14 @@ public class DisplayImplA3D extends DisplayImpl {
 
   /** return a DefaultDisplayRendererJ3D */
   protected DisplayRenderer getDefaultDisplayRenderer() {
-    return new DefaultDisplayRendererJ3D();
+    return new DefaultDisplayRendererA3D();
   }
 
   public void setScreenAspect(double height, double width) {
     DisplayRendererA3D dr = (DisplayRendererA3D) getDisplayRenderer();
-    Screen3D screen = dr.getCanvas().getScreen3D();
-    screen.setPhysicalScreenHeight(height);
-    screen.setPhysicalScreenWidth(width);
+//    Screen3D screen = dr.getCanvas().getScreen3D();
+//    screen.setPhysicalScreenHeight(height);
+//    screen.setPhysicalScreenWidth(width);
   }
 
   /**
@@ -524,107 +456,6 @@ public class DisplayImplA3D extends DisplayImpl {
         array.setTextureCoordinateIndices(0, vgb.indices);
       }
       return array;
-
-/* this expands indices
-      if (vga.vertexCount == 0) return null;
-      //
-      // expand vga.coordinates, vga.colors, vga.normals and vga.texCoords
-      //
-      int count = vga.indices.length;
-      int len = 3 * count;
-
-      int sum = 0;
-      for (int i=0; i<vga.stripVertexCounts.length; i++) sum += vga.stripVertexCounts[i];
-      System.out.println("vga.indexCount = " + vga.indexCount + " sum = " + sum +
-                         " count = " + count + " vga.stripVertexCounts.length = " +
-                         vga.stripVertexCounts.length);
-      // int[] strip_counts = new int[1];
-      // strip_counts[0] = count;
-      // TriangleStripArray array =
-      //   new TriangleStripArray(count, makeFormat(vga), strip_counts);
-
-      TriangleStripArray array =
-        new TriangleStripArray(count, makeFormat(vga), vga.stripVertexCounts);
-
-      if (vga.coordinates != null) {
-        System.out.println("expand vga.coordinates");
-        float[] coords = new float[len];
-        for (int k=0; k<count; k++) {
-          int i = 3 * k;
-          int j = 3 * vga.indices[k];
-          coords[i] = vga.coordinates[j];
-          coords[i + 1] = vga.coordinates[j + 1];
-          coords[i + 2] = vga.coordinates[j + 2];
-        }
-        array.setCoordinates(0, coords);
-      }
-      if (vga.colors != null) {
-        System.out.println("expand vga.colors");
-        byte[] cols = new float[len];
-        for (int k=0; k<count; k++) {
-          int i = 3 * k;
-          int j = 3 * vga.indices[k];
-          cols[i] = vga.colors[j];
-          cols[i + 1] = vga.colors[j + 1];
-          cols[i + 2] = vga.colors[j + 2];
-        }
-        array.setColors(0, cols);
-      }
-      if (vga.normals != null) {
-        System.out.println("expand vga.normals");
-        float[] norms = new float[len];
-        for (int k=0; k<count; k++) {
-          int i = 3 * k;
-          int j = 3 * vga.indices[k];
-          norms[i] = vga.normals[j];
-          norms[i + 1] = vga.normals[j + 1];
-          norms[i + 2] = vga.normals[j + 2];
-        }
-        array.setNormals(0, norms);
-      }
-      if (vga.texCoords != null) {
-        System.out.println("expand vga.texCoords");
-        float[] tex = new float[len];
-        for (int k=0; k<count; k++) {
-          int i = 3 * k;
-          int j = 3 * vga.indices[k];
-          tex[i] = vga.texCoords[j];
-          tex[i + 1] = vga.texCoords[j + 1];
-          tex[i + 2] = vga.texCoords[j + 2];
-        }
-        array.setTextureCoordinates(0, tex);
-      }
-      return array;
-*/
-
-/* this draws normal vectors
-      if (vga.vertexCount == 0) return null;
-      LineArray array = new LineArray(2 * vga.vertexCount, LineArray.COORDINATES);
-      float[] new_coords = new float[6 * vga.vertexCount];
-      int i = 0;
-      int j = 0;
-      for (int k=0; k<vga.vertexCount; k++) {
-        new_coords[j] = vga.coordinates[i];
-        new_coords[j+1] = vga.coordinates[i+1];
-        new_coords[j+2] = vga.coordinates[i+2];
-        j += 3;
-        new_coords[j] = vga.coordinates[i] + 0.05f * vga.normals[i];
-        new_coords[j+1] = vga.coordinates[i+1] + 0.05f * vga.normals[i+1];
-        new_coords[j+2] = vga.coordinates[i+2] + 0.05f * vga.normals[i+2];
-        i += 3;
-        j += 3;
-      }
-      array.setCoordinates(0, new_coords);
-      return array;
-*/
-
-/* this draws the 'dots'
-      if (vga.vertexCount == 0) return null;
-      PointArray array =
-        new PointArray(vga.vga.vertexCount, makeFormat(vga));
-      basicGeometry(vga, array, false);
-      return array;
-*/
     }
     if (vga instanceof VisADTriangleStripArray) {
       VisADTriangleStripArray vgb = (VisADTriangleStripArray) vga;
@@ -733,10 +564,10 @@ public class DisplayImplA3D extends DisplayImpl {
     return format;
   }
 
-  public void destroyUniverse() {
-    if (universe != null) universe.destroy();
-    universe = null;
-  }
+//  public void destroyUniverse() {
+//    if (universe != null) universe.destroy();
+//    universe = null;
+//  }
 
 
   public void destroy() throws VisADException, RemoteException {

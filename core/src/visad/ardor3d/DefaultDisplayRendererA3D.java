@@ -63,9 +63,9 @@ public class DefaultDisplayRendererA3D extends DisplayRendererA3D {
   private LineAttributes box_line = null;
   private LineAttributes cursor_line = null;
 
-  private Class mouseBehaviorJ3DClass = null;
+  private Class mouseBehaviorA3DClass = null;
 
-  private MouseBehaviorJ3D mouse = null; // Behavior for mouse interactions
+  private MouseBehaviorA3D mouse = null; // Behavior for mouse interactions
 
   /**
    * This is the default <CODE>DisplayRenderer</CODE> used by the
@@ -94,7 +94,7 @@ public class DefaultDisplayRendererA3D extends DisplayRendererA3D {
    */
   public DefaultDisplayRendererA3D () {
     super();
-    mouseBehaviorJ3DClass = MouseBehaviorJ3D.class;
+    mouseBehaviorA3DClass = MouseBehaviorA3D.class;
   }
 
   /**
@@ -103,7 +103,7 @@ public class DefaultDisplayRendererA3D extends DisplayRendererA3D {
   
   public DefaultDisplayRendererA3D (Class mbj3dClass) {
     super();
-    mouseBehaviorJ3DClass = mbj3dClass;
+    mouseBehaviorA3DClass = mbj3dClass;
   }
 
   public void destroy() {
@@ -134,13 +134,13 @@ public class DefaultDisplayRendererA3D extends DisplayRendererA3D {
     try {
       Class[] param = new Class[] {DisplayRendererA3D.class};
       Constructor mbConstructor =
-        mouseBehaviorJ3DClass.getConstructor(param);
-      mouse = (MouseBehaviorJ3D) mbConstructor.newInstance(new Object[] {this});
+        mouseBehaviorA3DClass.getConstructor(param);
+      mouse = (MouseBehaviorA3D) mbConstructor.newInstance(new Object[] {this});
     }
     catch (Exception e) {
-      throw new VisADError("cannot construct " + mouseBehaviorJ3DClass);
+      throw new VisADError("cannot construct " + mouseBehaviorA3DClass);
     }
-    // mouse = new MouseBehaviorJ3D(this);
+    mouse = new MouseBehaviorA3D(this);
 
     getDisplay().setMouseBehavior(mouse);
     box_color = new ColoringAttributes();

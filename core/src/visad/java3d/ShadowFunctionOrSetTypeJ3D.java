@@ -63,6 +63,7 @@ public class ShadowFunctionOrSetTypeJ3D extends ShadowTypeJ3D {
   ScalarMap flowMap = null;
   TrajectoryParams trajParams;
   ScalarMap altitudeToDisplayZ;
+  CoordinateSystem dspCoordSys;
   
   
   List<BranchGroup> branches = null;
@@ -158,7 +159,8 @@ public class ShadowFunctionOrSetTypeJ3D extends ShadowTypeJ3D {
         ScalarMap scalarMap = (ScalarMap) scalarMaps.elementAt(kk);
         if (scalarMap.getScalarName().equals(RealType.Altitude.getName())) {
            DisplayRealType dspType = scalarMap.getDisplayScalar();
-           RealType[] rtypes = dspType.getTuple().getCoordinateSystem().getReference().getRealComponents();
+           dspCoordSys = dspType.getTuple().getCoordinateSystem();
+           RealType[] rtypes = dspCoordSys.getReference().getRealComponents();
            for (int t=0; t<rtypes.length; t++) {
               if (rtypes[t].equals(Display.ZAxis)) {
                  altitudeToDisplayZ = scalarMap;
@@ -589,27 +591,33 @@ public class ShadowFunctionOrSetTypeJ3D extends ShadowTypeJ3D {
       return text.getSelectedMapVector();
     }
   }
+  
+  public Object createImage(int data_width, int data_height, int texture_width,
+                     int texture_height, byte[][] color_values) throws VisADException {
+     return adaptedShadowType.createImage(data_width, data_height, texture_width, texture_height, color_values);
+  }
 
   public void textureToGroup(Object group, VisADGeometryArray array,
-                            BufferedImage image, GraphicsModeControl mode,
+                            Object image, GraphicsModeControl mode,
                             float constant_alpha, float[] constant_color,
                             int texture_width, int texture_height, boolean byReference, boolean yUp, VisADImageTile tile) throws VisADException {
     textureToGroup(group, array, image, mode, constant_alpha, constant_color, texture_width, texture_height, byReference, yUp, tile, false);
   }
 
   public void textureToGroup(Object group, VisADGeometryArray array,
-                            BufferedImage image, GraphicsModeControl mode,
+                            Object image, GraphicsModeControl mode,
                             float constant_alpha, float[] constant_color,
                             int texture_width, int texture_height) throws VisADException {
     textureToGroup(group, array, image, mode, constant_alpha, constant_color, texture_width, texture_height, false, false, null, false);
   }
 
   public void textureToGroup(Object group, VisADGeometryArray array,
-                            BufferedImage image, GraphicsModeControl mode,
+                            Object img, GraphicsModeControl mode,
                             float constant_alpha, float[] constant_color,
                             int texture_width, int texture_height, 
                             boolean byReference, boolean yUp, VisADImageTile tile, boolean smoothen)
          throws VisADException {
+    BufferedImage image = (BufferedImage) img;
     GeometryArray geometry = display.makeGeometry(array);
     // System.out.println("texture geometry");
     // create basic Appearance
@@ -1370,6 +1378,9 @@ System.out.println("Texture.BASE_LEVEL_LINEAR = " + Texture.BASE_LEVEL_LINEAR); 
   private void doTrajectory() throws VisADException, RemoteException {
     ArrayList<FlowInfo> flowInfoList = Range.getAdaptedShadowType().getFlowInfo();
     int dataDomainLength = anim1DdomainSet.getLength();
+    FlowInfo info0 = flowInfoList.get(0);
+    trajParams = new TrajectoryParams(trajParams);
+    trajParams = TrajectoryManager.getTrajParamsFromFile(trajParams, info0.which);
     boolean trcrEnabled = trajParams.getMarkerEnabled();
     int trajForm = trajParams.getTrajectoryForm();
     boolean autoSizeTrcr = true;
@@ -1385,7 +1396,7 @@ System.out.println("Texture.BASE_LEVEL_LINEAR = " + Texture.BASE_LEVEL_LINEAR); 
     double[] times = TrajectoryManager.getTimes((Gridded1DSet)anim1DdomainSet);
     double[] timeSteps = TrajectoryManager.getTimeSteps((Gridded1DSet)anim1DdomainSet);
     
-    TrajectoryManager trajMan = new TrajectoryManager(renderer, trajParams, flowInfoList, dataDomainLength, times[0], altitudeToDisplayZ);
+    TrajectoryManager trajMan = new TrajectoryManager(renderer, trajParams, flowInfoList, dataDomainLength, times[0], altitudeToDisplayZ, dspCoordSys);
     
     trcrEnabled = (trcrEnabled && (trajForm == TrajectoryManager.LINE)) && trajForm != TrajectoryManager.POINT;
     
@@ -1403,9 +1414,9 @@ System.out.println("Texture.BASE_LEVEL_LINEAR = " + Texture.BASE_LEVEL_LINEAR); 
 
     double timeAccum = 0;
 
-    VisADGeometryArray array = null;
+    VisADGeometryArray[] arrays;
     VisADGeometryArray trcrArray = null;
-    VisADGeometryArray[] auxArray = new VisADGeometryArray[1];
+    VisADGeometryArray[] auxArray = new VisADGeometryArray[2];
     ArrayList<float[]> achrArrays = null;
     
     for (int k=0; k<dataDomainLength; k++) {
@@ -1413,7 +1424,7 @@ System.out.println("Texture.BASE_LEVEL_LINEAR = " + Texture.BASE_LEVEL_LINEAR); 
       
       FlowInfo info = flowInfoList.get(i);
       
-      array = trajMan.computeTrajectories(k, timeAccum, times, timeSteps, auxArray);
+      arrays = trajMan.computeTrajectories(k, timeAccum, times, timeSteps);
       if (trajMan.getNumberOfTrajectories() > 0) {
         achrArrays = new ArrayList<float[]>();
         trcrArray = trajMan.makeTracerGeometry(achrArrays, direction, trcrSize, dspScale, true);
@@ -1422,9 +1433,6 @@ System.out.println("Texture.BASE_LEVEL_LINEAR = " + Texture.BASE_LEVEL_LINEAR); 
       
       GraphicsModeControl mode = (GraphicsModeControl) info.mode.clone();
 
-      // something weird with this, everything being removed ?
-      //array = (VisADLineArray) array.removeMissing();
-      
       if ((k==0) || (timeAccum >= trajRefreshInterval)) { // for non steady state trajectories (refresh frequency)
         avHandler.setNoneVisibleIndex(i);
         timeAccum = 0.0;
@@ -1440,16 +1448,21 @@ System.out.println("Texture.BASE_LEVEL_LINEAR = " + Texture.BASE_LEVEL_LINEAR); 
       }
 
       BranchGroup branch = (BranchGroup) branches.get(i);
-      addToGroup(branch, array, mode, info.constant_alpha, info.constant_color);
+      addToGroup(branch, arrays[0], mode, info.constant_alpha, info.constant_color);
+      if (trajForm == TrajectoryManager.CYLINDER) {
+        // cylinder elbows
+        addToGroup(branch, arrays[2], mode, info.constant_alpha, info.constant_color);                  
+      }
       BranchGroup node = (BranchGroup) swit.getChild(i);
       node.addChild(branch);
       
-      if (auxArray[0] != null) {
+      if (trajForm == TrajectoryManager.CYLINDER) {
         BranchGroup auxBrnch = (BranchGroup) makeBranch();
-        addToGroup(auxBrnch, auxArray[0], mode, info.constant_alpha, info.constant_color);  
+        // cylinder cone
+        addToGroup(auxBrnch, arrays[1], mode, info.constant_alpha, info.constant_color);  
         ((BranchGroup)switB.getChild(i)).addChild(auxBrnch);
-      }
-
+      }      
+      
     } //---  domain length (time steps) outer time loop  -------------------------
         
     if (listener != null) {

@@ -32,12 +32,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import visad.util.CubicInterpolator;
+import visad.util.LinearInterpolator;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Properties;
 import visad.data.text.TextAdapter;
+import visad.util.Interpolator;
 
 
 /**
@@ -87,13 +89,15 @@ public class TrajectoryManager {
   boolean manualIntrpPts;
   boolean trajDoIntrp = true;
   boolean trajCachingEnabled = false;
-  boolean doHysplit = true;
+  //boolean doHysplit = false;
+  //boolean doRK4 = true;
   float trcrSize = 1f;
   boolean trcrEnabled;
   boolean terrainFollowEnabled;
   int numIntrpPts;
   int trajSkip;
   TrajectoryParams.SmoothParams smoothParams;
+  TrajectoryParams.Method method;
   int direction;
   int trajForm = LINE; // Default
   float cylWidth = 0.01f;
@@ -107,9 +111,12 @@ public class TrajectoryManager {
   float[] intrpU_1;
   float[] intrpV_1;
   float[] intrpW_1;  
-  CubicInterpolator uInterp;
-  CubicInterpolator vInterp;
-  CubicInterpolator wInterp;
+  float[] intrpU_2;
+  float[] intrpV_2;
+  float[] intrpW_2;  
+  Interpolator uInterp;
+  Interpolator vInterp;
+  Interpolator wInterp;
   float[][] values0;
   float[][] values1;
   float[][] values2;
@@ -148,6 +155,7 @@ public class TrajectoryManager {
       numIntrpPts = trajParams.getNumIntrpPts();
       trajSkip = trajParams.getStartSkip();
       smoothParams = trajParams.getSmoothParams();
+      method = trajParams.getMethod();
       direction = trajParams.getDirection();
       startPts = trajParams.getStartPoints();
       trajDoIntrp = trajParams.getDoIntrp();
@@ -251,16 +259,32 @@ public class TrajectoryManager {
       intrpV = new float[numSpatialPts];
       intrpW = new float[numSpatialPts];
       
-      if (doHysplit) {
+      if (method == TrajectoryParams.Method.HySplit) {
         intrpU_1 = new float[numSpatialPts];
         intrpV_1 = new float[numSpatialPts];
         intrpW_1 = new float[numSpatialPts];  
       }
+      else if (method == TrajectoryParams.Method.RK4) {
+        intrpU_1 = new float[numSpatialPts];
+        intrpV_1 = new float[numSpatialPts];
+        intrpW_1 = new float[numSpatialPts];
+        
+        intrpU_2 = new float[numSpatialPts];
+        intrpV_2 = new float[numSpatialPts];
+        intrpW_2 = new float[numSpatialPts];          
+      }
 
-      uInterp = new CubicInterpolator(trajDoIntrp, numSpatialPts);
-      vInterp = new CubicInterpolator(trajDoIntrp, numSpatialPts);
-      wInterp = new CubicInterpolator(trajDoIntrp, numSpatialPts);
-
+      if (trajParams.getInterpolationMethod() == TrajectoryParams.InterpolationMethod.Cubic) {
+        uInterp = new CubicInterpolator(trajDoIntrp, numSpatialPts);
+        vInterp = new CubicInterpolator(trajDoIntrp, numSpatialPts);
+        wInterp = new CubicInterpolator(trajDoIntrp, numSpatialPts);
+      }
+      else if (trajParams.getInterpolationMethod() == TrajectoryParams.InterpolationMethod.Linear) {
+        uInterp = new LinearInterpolator(trajDoIntrp, numSpatialPts);
+        vInterp = new LinearInterpolator(trajDoIntrp, numSpatialPts);
+        wInterp = new LinearInterpolator(trajDoIntrp, numSpatialPts);
+      }
+      
       values0 = null;
       values1 = null;
       values2 = null;
@@ -362,6 +386,9 @@ public class TrajectoryManager {
        }
 
        float timeStep = (float) timeSteps[i]/numIntrpPts;
+       if (!trajDoIntrp && (method == TrajectoryParams.Method.RK4)) {
+          timeStep *= 2;
+       }
 
        if ((timeAccum >= trajRefreshInterval)) { // for non steady state trajectories (refresh frequency)
           trajectories = new ArrayList<Trajectory>();
@@ -424,7 +451,7 @@ public class TrajectoryManager {
        int numTrajectories = trajectories.size();
        
        reset();
-
+ 
        for (int ti=0; ti<numIntrpPts; ti++) { // additional points per domain time step
          double dst = (x1 - x0)/numIntrpPts;
          double xt = x0 + dst*ti;
@@ -434,30 +461,50 @@ public class TrajectoryManager {
          uInterp.interpolate(xt, intrpU);
          vInterp.interpolate(xt, intrpV);
          wInterp.interpolate(xt, intrpW);
-
-         if (doHysplit) { // NOAA HySplit
-           if (ti == numIntrpPts-1) {
-             System.arraycopy(values1[0], 0, intrpU_1, 0, intrpU_1.length);
-             System.arraycopy(values1[1], 0, intrpV_1, 0, intrpV_1.length);
-             System.arraycopy(values1[2], 0, intrpW_1, 0, intrpW_1.length);
-            
-           }
-           else {
+         
+         if (method == TrajectoryParams.Method.RK4) { // Runge-Kutta
+             double step = dst;
+             if (!trajDoIntrp) {
+                step = 2*dst;
+             }
+             if (k == dataDomainLength-2 && ti > numIntrpPts-2) {
+                continue;
+             }
+             uInterp.interpolate(xt+step/2, intrpU_1);
+             vInterp.interpolate(xt+step/2, intrpV_1);
+             wInterp.interpolate(xt+step/2, intrpW_1);
+             
+             uInterp.interpolate(xt+step, intrpU_2);
+             vInterp.interpolate(xt+step, intrpV_2);
+             wInterp.interpolate(xt+step, intrpW_2);
+             
+             for (int t=0; t<numTrajectories; t++) {
+               Trajectory traj = trajectories.get(t);
+               traj.currentTimeIndex = direction*i;
+               traj.currentTime = direction*times[i];
+               traj.forwardRK4(info, new float[][] {intrpU, intrpV, intrpW}, 
+                                     new float[][] {intrpU_1, intrpV_1, intrpW_1}, 
+                                     new float[][] {intrpU_2, intrpV_2, intrpW_2},
+                                     color_values, spatialSetTraj, terrain, direction, timeStep);
+             }
+         }
+         else {
+           if (method == TrajectoryParams.Method.HySplit) { // NOAA HySplit
              uInterp.interpolate(xt+dst, intrpU_1);
              vInterp.interpolate(xt+dst, intrpV_1);
              wInterp.interpolate(xt+dst, intrpW_1);
+
+             intrpU = mean(intrpU, intrpU_1);         
+             intrpV = mean(intrpV, intrpV_1);         
+             intrpW = mean(intrpW, intrpW_1);
            }
 
-           intrpU = mean(intrpU, intrpU_1);         
-           intrpV = mean(intrpV, intrpV_1);         
-           intrpW = mean(intrpW, intrpW_1);
-         }
-
-         for (int t=0; t<numTrajectories; t++) {
-           Trajectory traj = trajectories.get(t);
-           traj.currentTimeIndex = direction*i;
-           traj.currentTime = direction*times[i];
-           traj.forward(info, new float[][] {intrpU, intrpV, intrpW}, color_values, spatialSetTraj, terrain, direction, timeStep);
+           for (int t=0; t<numTrajectories; t++) {
+             Trajectory traj = trajectories.get(t);
+             traj.currentTimeIndex = direction*i;
+             traj.currentTime = direction*times[i];
+             traj.forward(info, new float[][] {intrpU, intrpV, intrpW}, color_values, spatialSetTraj, terrain, direction, timeStep);
+           }
          }
 
        } // inner time loop (time interpolation)
@@ -2328,43 +2375,49 @@ public class TrajectoryManager {
           String propStr = null;
           propStr = prop.getProperty("CylinderWidthFactor");
           if (propStr != null) {
-            float fac = Float.valueOf(propStr);
+            float fac = Float.valueOf(propStr.trim());
             trajParams.setCylinderWidth(trajParams.getCylinderWidth()*fac);
           }
           
           propStr = prop.getProperty("RibbonWidthFactor");
           if (propStr != null) {
-            float fac = Float.valueOf(propStr);
+            float fac = Float.valueOf(propStr.trim());
             trajParams.setRibbonWidthFactor(fac);
           }          
           
           propStr = prop.getProperty("ManualIntrpPts");
           if (propStr != null) {
-            trajParams.setManualIntrpPts(Boolean.valueOf(propStr));             
+            trajParams.setManualIntrpPts(Boolean.valueOf(propStr.trim()));             
           }
           
           propStr = prop.getProperty("TrajDoIntrp");
           if (propStr != null) {
-            trajParams.setDoIntrp(Boolean.valueOf(propStr));             
+            trajParams.setDoIntrp(Boolean.valueOf(propStr.trim()));             
           }
           
           propStr = prop.getProperty("TerrainFollow");
           if (propStr != null) {
-            trajParams.setTerrainFollowing(Boolean.valueOf(propStr));             
+            trajParams.setTerrainFollowing(Boolean.valueOf(propStr.trim()));             
           }          
           
           propStr = prop.getProperty("NumIntrpPts");
           if (propStr != null) {
-             trajParams.setNumIntrpPts(Integer.valueOf(propStr));
+             trajParams.setNumIntrpPts(Integer.valueOf(propStr.trim()));
           }
           
           propStr = prop.getProperty("TrajRefreshInterval");
           if (propStr != null) {
-             trajParams.setTrajRefreshInterval(Double.valueOf(propStr));
+             trajParams.setTrajRefreshInterval(Double.valueOf(propStr.trim()));
+          }
+          
+          propStr = prop.getProperty("StartSkip");
+          if (propStr != null) {
+             trajParams.setStartSkip(Integer.valueOf(propStr.trim()));
           }
           
           propStr = prop.getProperty("TrajForm");
           if (propStr != null) {
+             propStr = propStr.trim();
              if (propStr.equals("LINE")) {
                trajParams.setTrajectoryForm(TrajectoryParams.LINE);
              }
@@ -2381,7 +2434,43 @@ public class TrajectoryManager {
                trajParams.setTrajectoryForm(TrajectoryParams.POINT); 
              }
           }
-
+          
+          propStr = prop.getProperty("Method");
+          if (propStr != null) {
+             propStr = propStr.trim();
+             if (propStr.equals("HYSPLIT")) {
+               trajParams.setMethod(TrajectoryParams.Method.HySplit);
+             }
+             else if (propStr.equals("RK4")) {
+               trajParams.setMethod(TrajectoryParams.Method.RK4);  
+             }
+             else if (propStr.equals("EULER")) {
+               trajParams.setMethod(TrajectoryParams.Method.Euler);
+             }
+          }
+          
+          propStr = prop.getProperty("InterpMethod");
+          if (propStr != null) {
+             propStr = propStr.trim();
+             if (propStr.equals("CUBIC")) {
+               trajParams.setInterpolationMethod(TrajectoryParams.InterpolationMethod.Cubic);
+             }
+             else if (propStr.equals("LINEAR")) {
+               trajParams.setInterpolationMethod(TrajectoryParams.InterpolationMethod.Linear);  
+             }
+          }
+          
+          propStr = prop.getProperty("Direction");
+          if (propStr != null) {
+             propStr = propStr.trim();
+             if (propStr.equals("FORWARD")) {
+               trajParams.setDirectionFlag(true);
+             }
+             else if (propStr.equals("REVERSE")) {
+               trajParams.setDirectionFlag(false);  
+             }
+          }
+          
           is.close();
        }
      }

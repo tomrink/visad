@@ -95,6 +95,7 @@ import visad.java3d.VisADImageTile;
 import visad.java3d.RendererJ3D;
 import visad.java3d.DisplayImplJ3D;
 import visad.java3d.GraphicsModeControlJ3D;
+import visad.util.ThreadManager;
 
 /**
    The ShadowImageFunctionTypeJ3D class shadows the FunctionType class for
@@ -700,9 +701,15 @@ public class ShadowImageByRefFunctionTypeJ3D extends ShadowFunctionTypeJ3D {
 
     int texture_width_max = link.getDisplay().getDisplayRenderer().getTextureWidthMax();
     int texture_height_max = link.getDisplay().getDisplayRenderer().getTextureWidthMax();
+    texture_width_max = 4096;
+    texture_height_max = 4096;
+    System.out.println("texture_width_max: "+texture_width_max);
+    System.out.println("texture_height_max: "+texture_height_max);
 
     int texture_width = textureWidth(data_width);
     int texture_height = textureHeight(data_height);
+    System.out.println("texture_width: "+texture_width);
+    System.out.println("texture_height: "+texture_height);
 
     if (reuseImages) {
       if (prevImgNode.numImages != numImages || 
@@ -754,13 +761,14 @@ public class ShadowImageByRefFunctionTypeJ3D extends ShadowFunctionTypeJ3D {
         }
 
     first_time =true; //Ghansham: this variable just indicates to makeColorBytes whether it's the first tile of the image
+    double t0 = System.currentTimeMillis();
     if (isTextureMap) { // linear texture
 
         if (imgNode.getNumTiles() == 1) {
           VisADImageTile tile = imgNode.getTile(0);
 	  if (regen_colbytes) { //REUSE COLBYTES: regenerate only if required
-	          makeColorBytesDriver(imgFlatField, cmap, cmaps, constant_alpha, RangeComponents, color_length, domain_length, permute,
-        	              data_width, data_height, imageType, tile, 0);
+                  makeColorBytesDriverParallel(imgFlatField, cmap, cmaps, constant_alpha, RangeComponents, color_length, domain_length, permute,
+                      		data_width, data_height, imageType, tile,  0);                                          
 	  }
 		if (regen_geom) { //REUSE : REGEN GEOM  regenerate the geometry
           		buildLinearTexture(bgImages, domain_set, dataUnits, domain_units, default_values, DomainComponents,
@@ -785,14 +793,24 @@ public class ShadowImageByRefFunctionTypeJ3D extends ShadowFunctionTypeJ3D {
 	   } else { //REUSE the branch
 		branch = (BranchGroup) bgImages.getChild(0);
 	   }
+          if (regen_colbytes) {
+                Iterator iter = imgNode.getTileIterator();
+                VisADImageTile tile = (VisADImageTile) iter.next();
+	        makeColorBytesDriver(imgFlatField, cmap, cmaps, constant_alpha, RangeComponents, color_length, domain_length, permute, data_width, data_height, imageType, tile, 0);
+                first_time = false;            
+                ThreadManager threadManager = new ThreadManager("makeColorBytesDriver");
+                while(iter.hasNext()) {
+                    tile = (VisADImageTile) iter.next();
+                    ThreadManager.MyRunnable runnable = new MakeColorBytesDriverRunnable(this, imgFlatField, cmap, cmaps, constant_alpha, RangeComponents, color_length, domain_length, permute, data_width, data_height, imageType, tile, 0);
+                     threadManager.addRunnable(runnable);
+                }
+                threadManager.runAllParallel();
+          }
 	  int branch_tile_indx = 0; //REUSE: to get the branch for a tile in case of multi-tile rendering
           for (Iterator iter = imgNode.getTileIterator(); iter.hasNext();) {
              VisADImageTile tile = (VisADImageTile) iter.next();
 
 		if (regen_colbytes) { //REUSE COLBYTES: regenerate only if required
-	                makeColorBytesDriver(imgFlatField, cmap, cmaps, constant_alpha, RangeComponents, color_length, domain_length, permute,
-                      		data_width, data_height, imageType, tile, 0);
-                	first_time = false; //Ghansham: setting 'first_time' variable false after the first tile has been generated
 		}
 		if (regen_geom) { //REUSE: Regenerate the geometry
 
@@ -857,8 +875,8 @@ public class ShadowImageByRefFunctionTypeJ3D extends ShadowFunctionTypeJ3D {
         if (imgNode.getNumTiles() == 1) {
           VisADImageTile tile = imgNode.getTile(0);
 	  	if (regen_colbytes) {  //REUSE COLBYTES: regenerate only if required
-                	makeColorBytesDriver(imgFlatField, cmap, cmaps, constant_alpha, RangeComponents, color_length, domain_length, permute,
-                      		data_width, data_height, imageType, tile,  0);
+                	makeColorBytesDriverParallel(imgFlatField, cmap, cmaps, constant_alpha, RangeComponents, color_length, domain_length, permute,
+                      		data_width, data_height, imageType, tile,  0);                        
 		}
 	        if (regen_geom) { //REUSE: REGEN GEOM regenerate 
           		buildCurvedTexture(bgImages, domain_set, dataUnits, domain_units, default_values, DomainComponents,
@@ -885,14 +903,23 @@ public class ShadowImageByRefFunctionTypeJ3D extends ShadowFunctionTypeJ3D {
 	  } else { //REUSE: Reuse already built branch 
 		branch = (BranchGroup) bgImages.getChild(0);
           } 
+          if (regen_colbytes) {
+            Iterator iter = imgNode.getTileIterator();
+            VisADImageTile tile = (VisADImageTile) iter.next();
+	    makeColorBytesDriver(imgFlatField, cmap, cmaps, constant_alpha, RangeComponents, color_length, domain_length, permute, data_width, data_height, imageType, tile, 0);
+            first_time = false;            
+            ThreadManager threadManager = new ThreadManager("makeColorBytesDriver");
+            while(iter.hasNext()) {
+              tile = (VisADImageTile) iter.next();
+              ThreadManager.MyRunnable runnable = new MakeColorBytesDriverRunnable(this, imgFlatField, cmap, cmaps, constant_alpha, RangeComponents, color_length, domain_length, permute, data_width, data_height, imageType, tile, 0);
+              threadManager.addRunnable(runnable);
+            }
+            threadManager.runAllParallel();
+          }
+          
 	  int branch_tile_indx = 0; //REUSE: to get the branch for a tile in case of multi-tile rendering
           for (Iterator iter = imgNode.getTileIterator(); iter.hasNext();) {
              VisADImageTile tile = (VisADImageTile) iter.next();
-		if (regen_colbytes) { //REUSE COLBYTES: regenerate only if required
-                	makeColorBytesDriver(imgFlatField, cmap, cmaps, constant_alpha, RangeComponents, color_length, domain_length, permute,
-                      		data_width, data_height, imageType, tile, 0);
-                	first_time = false; //Ghansham: setting 'first_time' variable false after the first tile has been generated
-		}
 
 		if (regen_geom) { //REUSE REGEN GEOM regenerate geometry 
 			BranchGroup branch1 = null;
@@ -933,7 +960,6 @@ public class ShadowImageByRefFunctionTypeJ3D extends ShadowFunctionTypeJ3D {
 		}
 		branch_tile_indx++;
            }
-
         }
       } // end if (curvedTexture)
       else { // !isTextureMap && !curvedTexture
@@ -969,15 +995,27 @@ public class ShadowImageByRefFunctionTypeJ3D extends ShadowFunctionTypeJ3D {
         threeD_itable = null; //for multiband
         color_values = null; //special case
 
-        for (Iterator iter = imgNode.getTileIterator(); iter.hasNext();) {
-          VisADImageTile tile = (VisADImageTile) iter.next();
-	  if(regen_colbytes) {	//REUSE COLBYTES: regenerate colobytes only if required
-          	makeColorBytesDriver(ff, cmap, cmaps, constant_alpha, RangeComponents, color_length, domain_length, permute,
-                	data_width, data_height, imageType, tile, k);
-           	first_time = false;
+	if(regen_colbytes) {	//REUSE COLBYTES: regenerate colobytes only if required
+            Iterator iter = imgNode.getTileIterator();
+            VisADImageTile tile = (VisADImageTile) iter.next();
+            if (imgNode.getNumTiles() == 1) {
+	      makeColorBytesDriverParallel(ff, cmap, cmaps, constant_alpha, RangeComponents, color_length, domain_length, permute, data_width, data_height, imageType, tile, k);
+            }
+            else {
+              makeColorBytesDriver(ff, cmap, cmaps, constant_alpha, RangeComponents, color_length, domain_length, permute, data_width, data_height, imageType, tile, k);
+              first_time = false;            
+              ThreadManager threadManager = new ThreadManager("makeColorBytesDriver");
+              while(iter.hasNext()) {
+                tile = (VisADImageTile) iter.next();
+                ThreadManager.MyRunnable runnable = new MakeColorBytesDriverRunnable(this, ff, cmap, cmaps, constant_alpha, RangeComponents, color_length, domain_length, permute, data_width, data_height, imageType, tile, k);
+                threadManager.addRunnable(runnable);
+              }
+              threadManager.runAllParallel();
+            }
 	  }
-        }
       }
+      double t1 = System.currentTimeMillis();
+      System.out.println("total time: "+(t1-t0));
 
       cmaps = null;
       first_time = true;
@@ -1061,8 +1099,72 @@ public void makeColorBytesDriver(Data imgFlatField, ScalarMap cmap, ScalarMap[] 
        byteData = ((DataBufferByte)db).getData();
        java.util.Arrays.fill(byteData, (byte)0);
        makeColorBytes(imgFlatField, cmap, cmaps, constant_alpha, RangeComponents, color_length, domain_length, permute,
-                    byteData,
+                    byteData, 0,
                     data_width, data_height, tile_width, tile_height, xStart, yStart, texture_width, texture_height);
+}
+
+public void makeColorBytesDriverParallel(Data imgFlatField, ScalarMap cmap, ScalarMap[] cmaps, float constant_alpha,
+              ShadowRealType[] RangeComponents, int color_length, int domain_length, int[] permute,
+              int data_width, int data_height,
+              int imageType, VisADImageTile tile, int image_index) throws VisADException, RemoteException {
+        BufferedImage image = null;
+        byte byteData[] = null;
+        int tile_width = tile.width;
+        int tile_height = tile.height;
+        int xStart = tile.xStart;
+        int yStart = tile.yStart;
+        int texture_width = textureWidth(tile_width);
+        int texture_height = textureHeight(tile_height);
+
+       if (!reuseImages) {
+         image = createImageByRef(texture_width, texture_height, imageType);
+         tile.setImage(image_index, image);
+       } else {
+         image = (BufferedImage) tile.getImage(image_index);
+	 //GHANSHAM: 01MAR2012 GreyScale Texture (starts here) 
+	 //If the incoming ImageType is not the same as the existing imageType, we will have to recreate the image.
+         //THIS HAPPENS when a single band GreyScale Image (GreyScale LUT applied) gets converted Color image(Colored LUT applied) and vice versa
+	 if (image.getType() != imageType) {
+                        image = createImageByRef(texture_width, texture_height, imageType);
+                        tile.setImage(image_index, image);
+         }
+	//GHANSHAM: 01MAR2012 GreyScale Texture (ends here)
+       }
+
+       java.awt.image.Raster raster = image.getRaster();
+       DataBuffer db = raster.getDataBuffer();
+       byteData = ((DataBufferByte)db).getData();
+       java.util.Arrays.fill(byteData, (byte)0);
+       
+       int numProc = ThreadManager.getGlobalMaxThreads();
+       int secWidth = data_width;
+       int secHeight = data_height/numProc;
+       int rem = data_height % numProc;
+       
+       int offset = 0;
+       yStart = 0;
+       xStart = 0;     
+       
+       first_time = true;
+       makeColorBytes(imgFlatField, cmap, cmaps, constant_alpha, RangeComponents, color_length, domain_length, permute,
+                      byteData, offset, data_width, data_height, secWidth, secHeight, xStart, yStart, texture_width, texture_height);
+       first_time = false;
+       
+       if (numProc > 1) {
+         ThreadManager threadManager  = new ThreadManager("makeColorBytesParallel");
+         for (int p=1; p<numProc-1; p++) {
+           offset += texture_width*secHeight*color_length;
+           yStart += secHeight;
+           ThreadManager.MyRunnable runnable = new MakeColorBytesRunnable(this, imgFlatField, cmap, cmaps, constant_alpha, RangeComponents, color_length, domain_length, permute, byteData, offset, data_width, data_height, secWidth, secHeight, xStart, yStart, texture_width, texture_height);
+           threadManager.addRunnable(runnable);
+         }
+         offset += texture_width*secHeight*color_length;
+         yStart += secHeight;
+         ThreadManager.MyRunnable runnable = new MakeColorBytesRunnable(this, imgFlatField, cmap, cmaps, constant_alpha, RangeComponents, color_length, domain_length, permute, byteData, offset, data_width, data_height, secWidth, secHeight+rem, xStart, yStart, texture_width, texture_height);
+         threadManager.addRunnable(runnable);
+       
+         threadManager.runInParallel();
+       }
 }
 
 /*  New version contributed by Ghansham (ISRO)
@@ -1073,7 +1175,7 @@ public void makeColorBytesDriver(Data imgFlatField, ScalarMap cmap, ScalarMap[] 
  */
 public void makeColorBytes(Data data, ScalarMap cmap, ScalarMap[] cmaps, float constant_alpha,
 		ShadowRealType[] RangeComponents, int color_length, int domain_length, int[] permute,
-		byte[] byteData, int data_width, int data_height, int tile_width, int tile_height, int xStart, int yStart,
+		byte[] byteData, int byteDataOffset, int data_width, int data_height, int tile_width, int tile_height, int xStart, int yStart,
 		int texture_width, int texture_height)
 throws VisADException, RemoteException {
 	if (cmap != null) {
@@ -1141,7 +1243,7 @@ throws VisADException, RemoteException {
 				// fast lookup from byte values to color bytes
 				byte[] bytes0 = scaled_Bytes[0];
 
-				int k =0;
+				int k = byteDataOffset;
 				int color_length_times_texture_width = texture_width*color_length;
 				for (int y=0; y<tile_height; y++) {
 					int image_col_factor = (y+yStart)*data_width + xStart;
@@ -1201,7 +1303,7 @@ throws VisADException, RemoteException {
 				// now do fast lookup from byte values to color bytes
 				byte[] bytes0 = scaled_Bytes[0];
 
-				int k = 0;
+				int k = byteDataOffset;
 				int image_col_offset = yStart*data_width + xStart;
 				int image_col_factor = image_col_offset;
                                 int pot_texture_offset = color_length*(texture_width-tile_width);
@@ -1258,7 +1360,7 @@ throws VisADException, RemoteException {
 				}
 				// now do fast lookup from byte values to color bytes
 				float[] values0 = scaled_Floats[0];
-				int k = 0;
+				int k = byteDataOffset;
 				//int color_length_times_texture_width = texture_width*color_length;
 				int image_col_offset = yStart*data_width + xStart;
 				int image_col_factor = 0;
@@ -1322,7 +1424,7 @@ throws VisADException, RemoteException {
 			int r, g, b;
 			int c = (int) (255.0 * (1.0f - constant_alpha));
 			int a = (c < 0) ? 0 : ((c > 255) ? 255 : c);
-			int k = 0;
+			int k = byteDataOffset;
 			int image_col_offset = yStart*data_width + xStart;
 			int image_col_factor = image_col_offset;
                         int pot_texture_offset = color_length*(texture_width-tile_width);
@@ -1421,7 +1523,7 @@ throws VisADException, RemoteException {
 					int domainLength =  scaled_Bytes[color_indx].length;
 					int tblEnd = table_length - 1;
 					int data_indx = 0;
-					int texture_index = 0;
+					int texture_index = byteDataOffset;
 
 					int image_col_offset = yStart*data_width + xStart;
 					int image_col_factor = 0;
@@ -1441,7 +1543,7 @@ throws VisADException, RemoteException {
 				}
 			} else { //Inserted by Ghansham (Ends here)
 				int data_indx = 0;
-				int texture_index = 0;
+				int texture_index = byteDataOffset;
 				c = 0;
 				if (color_length == 4) {
 					c = (int) (255.0 * (1.0f - constant_alpha));
@@ -1522,7 +1624,7 @@ throws VisADException, RemoteException {
 			c = (int) (255.0 * (1.0f - constant_alpha));
 			int a = (c < 0) ? 0 : ((c > 255) ? 255 : c);
 			int m = 0;
-			int k = 0;
+			int k = byteDataOffset;
 			int image_col_offset = yStart*data_width + xStart;
 			int image_col_factor = image_col_offset;
 			int pot_texture_offset = color_length*(texture_width-tile_width);
@@ -2390,3 +2492,113 @@ class Tile {
      width = x_stop - x_start + 1;
    }
 }
+
+class MakeColorBytesDriverRunnable implements ThreadManager.MyRunnable {
+   FlatField imgFlatField;
+   ScalarMap cmap;
+   ScalarMap[] cmaps;
+   float constant_alpha;
+   ShadowRealType[] RangeComponents;
+   ShadowImageByRefFunctionTypeJ3D byRefShadow;
+   VisADImageTile tile;
+   int color_length;
+   int domain_length;
+   int[] permute;
+   int data_width;
+   int data_height;
+   int imageType;
+   int image_index;
+   
+   
+   public MakeColorBytesDriverRunnable(ShadowImageByRefFunctionTypeJ3D byRefShadow, Data imgFlatField, ScalarMap cmap, ScalarMap[] cmaps, float constant_alpha,
+              ShadowRealType[] RangeComponents, int color_length, int domain_length, int[] permute,
+              int data_width, int data_height,
+              int imageType, VisADImageTile tile, int image_index) {
+      this.byRefShadow = byRefShadow;
+      this.imgFlatField = (FlatField) imgFlatField;
+      this.cmap = cmap;
+      this.cmaps = cmaps;
+      this.constant_alpha = constant_alpha;
+      this.RangeComponents = RangeComponents;
+      this.color_length = color_length;
+      this.domain_length = domain_length;
+      this.permute = permute;
+      this.data_height = data_height;
+      this.data_width = data_width;
+      this.imageType = imageType;
+      this.tile = tile;
+      this.image_index = image_index;
+   }
+   
+   public void run() throws Exception {
+     try {
+       byRefShadow.makeColorBytesDriver(imgFlatField, cmap, cmaps, constant_alpha, RangeComponents, color_length, domain_length, permute, data_width, data_height, imageType, tile, image_index);
+     }
+     catch (VisADException vex) {
+       vex.printStackTrace();
+     }
+     catch (RemoteException rex) {
+       rex.printStackTrace();
+     }
+   }
+}
+   
+class MakeColorBytesRunnable implements ThreadManager.MyRunnable {
+   FlatField imgFlatField;
+   ScalarMap cmap;
+   ScalarMap[] cmaps;
+   float constant_alpha;
+   ShadowRealType[] RangeComponents;
+   ShadowImageByRefFunctionTypeJ3D byRefShadow;
+   int color_length;
+   int domain_length;
+   int[] permute;
+   int data_width;
+   int data_height;
+   int texture_width;
+   int texture_height;
+   int tile_width;
+   int tile_height;
+   int xStart;
+   int yStart;
+   byte[] byteData;
+   int offset;
+   
+   public MakeColorBytesRunnable(ShadowImageByRefFunctionTypeJ3D byRefShadow, Data imgFlatField, ScalarMap cmap, ScalarMap[] cmaps, float constant_alpha,
+              ShadowRealType[] RangeComponents, int color_length, int domain_length, int[] permute, byte[] byteData, int offset,
+              int data_width, int data_height, int tile_width, int tile_height, int x_start, int y_start, int texture_width, int texture_height) {
+      this.byRefShadow = byRefShadow;
+      this.imgFlatField = (FlatField) imgFlatField;
+      this.cmap = cmap;
+      this.cmaps = cmaps;
+      this.constant_alpha = constant_alpha;
+      this.RangeComponents = RangeComponents;
+      this.color_length = color_length;
+      this.domain_length = domain_length;
+      this.permute = permute;
+      this.data_height = data_height;
+      this.data_width = data_width;
+      this.tile_width = tile_width;
+      this.tile_height = tile_height;
+      this.xStart = x_start;
+      this.yStart = y_start;
+      this.texture_width = texture_width;
+      this.texture_height = texture_height;
+      this.byteData = byteData;
+      this.offset = offset;
+   }
+   
+   public void run() throws Exception {
+     try {
+       byRefShadow.makeColorBytes(imgFlatField, cmap, cmaps, constant_alpha, RangeComponents, color_length, domain_length, permute, byteData, offset, data_width, data_height, tile_width, tile_height, xStart, yStart,
+		texture_width, texture_height);
+     }
+     catch (VisADException vex) {
+       vex.printStackTrace();
+     }
+     catch (RemoteException rex) {
+       rex.printStackTrace();
+     }
+   }
+  }
+

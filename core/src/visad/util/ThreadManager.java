@@ -4,7 +4,7 @@
 
 /*
 VisAD system for interactive analysis and visualization of numerical
-data.  Copyright (C) 1996 - 2018 Bill Hibbard, Curtis Rueden, Tom
+data.  Copyright (C) 1996 - 2019 Bill Hibbard, Curtis Rueden, Tom
 Rink, Dave Glowacki, Steve Emmerson, Tom Whittaker, Don Murray, and
 Tommy Jasmin.
 
@@ -125,10 +125,13 @@ public class ThreadManager {
     ThreadManager.maxThreads = max;
   }
 
+  public static int getGlobalMaxThreads() {
+     return maxThreads;
+  }
 
-    public void debug(String msg) {
+  public void debug(String msg) {
 
-    }
+  }
 
 
   /**

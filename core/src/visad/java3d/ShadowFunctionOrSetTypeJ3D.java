@@ -4,7 +4,7 @@
 
 /*
 VisAD system for interactive analysis and visualization of numerical
-data.  Copyright (C) 1996 - 2018 Bill Hibbard, Curtis Rueden, Tom
+data.  Copyright (C) 1996 - 2019 Bill Hibbard, Curtis Rueden, Tom
 Rink, Dave Glowacki, Steve Emmerson, Tom Whittaker, Don Murray, and
 Tommy Jasmin.
 
@@ -64,6 +64,12 @@ public class ShadowFunctionOrSetTypeJ3D extends ShadowTypeJ3D {
   TrajectoryParams trajParams;
   ScalarMap altitudeToDisplayZ;
   CoordinateSystem dspCoordSys;
+  float[] value_array;
+  float[] default_values;
+  Data data;
+  DataRenderer renderer;
+  int trajTimeDir;
+  private final int numTrajFlowInMemory = 4;
   
   
   List<BranchGroup> branches = null;
@@ -127,7 +133,11 @@ public class ShadowFunctionOrSetTypeJ3D extends ShadowTypeJ3D {
     DataDisplayLink[] link_s = renderer.getLinks();
     DataDisplayLink link = link_s[0];
     Vector scalarMaps = link.getSelectedMapVector();
-
+    
+    this.value_array = value_array;
+    this.default_values = default_values;
+    this.data = data;
+    this.renderer = renderer;
     
     // only determine if it's an animation if non-terminal. isTerminal will
     // only be determined if there are scalar maps - defaults to false
@@ -183,6 +193,7 @@ public class ShadowFunctionOrSetTypeJ3D extends ShadowTypeJ3D {
             doTrajectory = true;
             trajParams = flowCntrl.getTrajectoryParams();
             trajVisibilityTimeWindow = trajParams.getTrajVisibilityTimeWindow();
+            trajTimeDir = trajParams.getDirection();
             break;
           }
           else {
@@ -247,9 +258,8 @@ public class ShadowFunctionOrSetTypeJ3D extends ShadowTypeJ3D {
           final BranchGroup node = (BranchGroup) swit.getChild(i);
           threadManager.addRunnable(new ThreadManager.MyRunnable() {
                   public void run()  throws Exception {
-                      recurseRange(branch, sample,
-                                   value_array, default_values, renderer);
                       if (!doTrajectory) {
+                        recurseRange(branch, sample, value_array, default_values, renderer);
                         node.addChild(branch);          
                       }
                   }
@@ -257,8 +267,8 @@ public class ShadowFunctionOrSetTypeJ3D extends ShadowTypeJ3D {
       }
 
       if (doTrajectory) {
-        post = true;
-        threadManager.runSequentially();
+        processTrajectory();
+        post = false;
       }
       else {
         post = false;
@@ -1348,9 +1358,15 @@ System.out.println("Texture.BASE_LEVEL_LINEAR = " + Texture.BASE_LEVEL_LINEAR); 
     return false;
   }
 
-  public void postProcessTraj() throws VisADException {
+  public void processTrajectory() throws VisADException {
     try {
-       doTrajectory();
+      for (int k=0; k<numTrajFlowInMemory; k++) {
+        int i = (trajTimeDir < 0) ? ((domainLength-1) - k) : k;
+        final BranchGroup branch = (BranchGroup) branches.get(i);
+        final Data sample  = ((Field) data).getSample(i);
+        recurseRange(branch, sample, value_array, default_values, renderer);
+      }
+      doTrajectory();
     } catch (Exception e) {
        e.printStackTrace();
     }
@@ -1360,7 +1376,7 @@ System.out.println("Texture.BASE_LEVEL_LINEAR = " + Texture.BASE_LEVEL_LINEAR); 
       and add to group; then clear AccumulationVector */
   public void postProcess(Object group) throws VisADException {
     if (doTrajectory) {
-      postProcessTraj();
+      processTrajectory();
       return;
     }
     
@@ -1404,9 +1420,12 @@ System.out.println("Texture.BASE_LEVEL_LINEAR = " + Texture.BASE_LEVEL_LINEAR); 
     double[] times = TrajectoryManager.getTimes((Gridded1DSet)anim1DdomainSet);
     double[] timeSteps = TrajectoryManager.getTimeSteps((Gridded1DSet)anim1DdomainSet);
     
-    TrajectoryManager trajMan = new TrajectoryManager(renderer, trajParams, flowInfoList, dataDomainLength, times[0], altitudeToDisplayZ, dspCoordSys);
+    TrajectoryManager trajMan = new TrajectoryManager(renderer, trajParams, flowInfoList, dataDomainLength, times[0], altitudeToDisplayZ, dspCoordSys, (Gridded1DSet)anim1DdomainSet);
     
     trcrEnabled = (trcrEnabled && (trajForm == TrajectoryManager.LINE)) && trajForm != TrajectoryManager.POINT;
+    if (trajForm == TrajectoryManager.TRACER || trajForm == TrajectoryManager.TRACER_POINT) {
+      trcrEnabled = true;
+    }
     
     if (autoSizeTrcr && trcrEnabled) {
       listener = new FixGeomSizeAppearanceJ3D(pCntrl, this, mouseBehav);
@@ -1429,25 +1448,33 @@ System.out.println("Texture.BASE_LEVEL_LINEAR = " + Texture.BASE_LEVEL_LINEAR); 
     
     // We don't really have a time interval defined beyond the next to last point
     int computeLength = dataDomainLength-1;
-    if (!trajParams.getDoIntrp()) {
-       if (trajParams.getMethod() == TrajectoryParams.Method.RK4) { // need 3 time steps
-          computeLength = dataDomainLength-2;
-       }
+    if (trajParams.getMethod() == TrajectoryParams.Method.RK4) { // need 3 time steps
+      computeLength = dataDomainLength-2;
+    }
+    else if (trajParams.getMethod() == TrajectoryParams.Method.Euler && 
+            ((trajParams.getInterpolationMethod() == TrajectoryParams.InterpolationMethod.None) || !trajParams.getTrajDoIntrp())) {
+      computeLength = dataDomainLength;
     }
     
     for (int k=0; k<computeLength; k++) {
       int i = (direction < 0) ? ((dataDomainLength-1) - k) : k;
       
-      FlowInfo info = flowInfoList.get(i);
+      FlowInfo info = flowInfoList.get(0);
       
       arrays = trajMan.computeTrajectories(k, timeAccum, times, timeSteps);
       if (trajMan.getNumberOfTrajectories() > 0) {
-        achrArrays = new ArrayList<float[]>();
-        trcrArray = trajMan.makeTracerGeometry(achrArrays, direction, trcrSize, dspScale, true);
-        trcrArray = TrajectoryManager.scaleGeometry(trcrArray, achrArrays, (float)(1.0/scale));      
+        if (trajForm == TrajectoryManager.TRACER_POINT) {
+          trcrArray = trajMan.makePointGeometry();
+        }
+        else {
+          achrArrays = new ArrayList<float[]>();
+          trcrArray = trajMan.makeTracerGeometry(achrArrays, direction, trcrSize, dspScale, true);
+          trcrArray = TrajectoryManager.scaleGeometry(trcrArray, achrArrays, (float)(1.0/scale));
+        }
       }
       
       GraphicsModeControl mode = (GraphicsModeControl) info.mode.clone();
+      mode.setPointSize(5f, false);
 
       if ((k==0) || (timeAccum >= trajRefreshInterval)) { // for non steady state trajectories (refresh frequency)
         avHandler.setNoneVisibleIndex(i);
@@ -1458,19 +1485,23 @@ System.out.println("Texture.BASE_LEVEL_LINEAR = " + Texture.BASE_LEVEL_LINEAR); 
       if (trcrEnabled) {
         Object group = switB.getChild(i);
         BranchGroup trcrBG = addToDetachableGroup(group, trcrArray, mode, info.constant_alpha, info.constant_color);
-        if (listener != null && trcrArray != null) {
+        if (listener != null && trcrArray != null && achrArrays != null) {
           listener.add(trcrBG, trcrArray, achrArrays, mode, info.constant_alpha, info.constant_color);
         }
       }
 
       BranchGroup branch = (BranchGroup) branches.get(i);
       addToGroup(branch, arrays[0], mode, info.constant_alpha, info.constant_color);
+      
       if (trajForm == TrajectoryManager.CYLINDER) {
         // cylinder elbows
         addToGroup(branch, arrays[2], mode, info.constant_alpha, info.constant_color);                  
       }
-      BranchGroup node = (BranchGroup) swit.getChild(i);
-      node.addChild(branch);
+      
+      if (trajForm != TrajectoryManager.TRACER && trajForm != TrajectoryManager.TRACER_POINT) {
+        BranchGroup node = (BranchGroup) swit.getChild(i);
+        node.addChild(branch);
+      }
       
       if (trajForm == TrajectoryManager.CYLINDER) {
         BranchGroup auxBrnch = (BranchGroup) makeBranch();
@@ -1478,6 +1509,14 @@ System.out.println("Texture.BASE_LEVEL_LINEAR = " + Texture.BASE_LEVEL_LINEAR); 
         addToGroup(auxBrnch, arrays[1], mode, info.constant_alpha, info.constant_color);  
         ((BranchGroup)switB.getChild(i)).addChild(auxBrnch);
       }      
+
+      int dat_idx = i + direction*numTrajFlowInMemory;
+      if ((direction > 0 && dat_idx < computeLength) || (direction < 0 && dat_idx >= 0)) {
+        final BranchGroup obj = (BranchGroup) branches.get(dat_idx);
+        final Data sample  = ((Field) data).getSample(dat_idx);
+        recurseRange(obj, sample, value_array, default_values, renderer);
+        flowInfoList.remove(0);
+      }
       
     } //---  domain length (time steps) outer time loop  -------------------------
         
@@ -1487,5 +1526,20 @@ System.out.println("Texture.BASE_LEVEL_LINEAR = " + Texture.BASE_LEVEL_LINEAR); 
           listener.unlock();
        }
     }
+    
+    if (trajParams.getSaveTracerLocations()) {
+      try {
+        java.io.FileOutputStream fos = new java.io.FileOutputStream("/Users/rink/TracerLocations.ser");
+        java.io.ObjectOutputStream oos = new java.io.ObjectOutputStream(fos);
+        oos.writeObject(trajMan.tracerLocations);
+        fos.close();
+      }
+      catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+    
+    // Clear the intermediate FlowInfo results now that visualization has been created.
+    Range.getAdaptedShadowType().getFlowInfo().clear();
   }
 }

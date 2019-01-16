@@ -4,7 +4,7 @@
 
 /*
 VisAD system for interactive analysis and visualization of numerical
-data.  Copyright (C) 1996 - 2017 Bill Hibbard, Curtis Rueden, Tom
+data.  Copyright (C) 1996 - 2019 Bill Hibbard, Curtis Rueden, Tom
 Rink, Dave Glowacki, Steve Emmerson, Tom Whittaker, Don Murray, and
 Tommy Jasmin.
 
@@ -32,6 +32,7 @@ import java.rmi.RemoteException;
 import java.util.Enumeration;
 import java.util.Vector;
 import java.util.ArrayList;
+import visad.data.DataCacheManager;
 
 import visad.util.HersheyFont;
 
@@ -174,6 +175,8 @@ public abstract class ShadowType extends Object implements java.io.Serializable 
   public boolean trajectory1 = false;
   public boolean trajectory2 = false;
   protected ArrayList<FlowInfo> flowInfoList = new ArrayList<FlowInfo>();
+  public boolean cacheTrajFlow1 = false;
+  public boolean cacheTrajFlow2 = false;
 
   /** makeContour, manifoldDimension == 2 */
   int[] cnt = { 0 };
@@ -2151,6 +2154,7 @@ public abstract class ShadowType extends Object implements java.io.Serializable 
               if (trajectory1) {
                  ff_values[k][flow_index] = map.inverseScaleValues(ff_values[k][flow_index], true);
                  flowScale[k] = 1f;
+                 cacheTrajFlow1 = false; // need to check FlowControl
               }
             }
             if (k == 1) {
@@ -2167,6 +2171,7 @@ public abstract class ShadowType extends Object implements java.io.Serializable 
               if (trajectory2) {
                  ff_values[k][flow_index] = map.inverseScaleValues(ff_values[k][flow_index], true);
                  flowScale[k] = 1f;
+                 cacheTrajFlow2 = false; // need to check FlowControl
               }
             }
           }
@@ -2816,7 +2821,16 @@ System.out.println("adjusted flow values = " + flow_values[0][0] + " " +
     flwInfo.renderer = renderer;
     flwInfo.which = which;
     flwInfo.trajColors = trajColors;
+    flwInfo.useCache = false;
     flowInfoList.add(flwInfo);
+    
+    if ((which == 0 && cacheTrajFlow1) || (which == 1 && cacheTrajFlow2)){
+      flwInfo.useCache = true;
+      flwInfo.flowObjId = DataCacheManager.getCacheManager().addToCache(flow_values);
+      flwInfo.flow_values = null;
+      flwInfo.colorObjId = DataCacheManager.getCacheManager().addToCache(color_values);
+      flwInfo.color_values = null;
+    }
 
     return;
   }
@@ -4325,9 +4339,21 @@ System.out.println("adjusted flow values = " + flow_values[0][0] + " " +
       throws VisADException {
     return addToGroup(group, array, mode, constant_alpha, constant_color);
   }
+  
+  public Object createImage(int data_width, int data_height, int texture_width,
+                     int texture_height, byte[][] color_values) throws VisADException {
+     return null;
+  }
+  
+  public Object[] createImages(int axis, int data_width_in,
+           int data_height_in, int data_depth_in, int texture_width_in,
+           int texture_height_in, int texture_depth_in, byte[][] color_values)
+         throws VisADException {
+    return null;
+  }
 
   public void textureToGroup(Object group, VisADGeometryArray array,
-      BufferedImage image, GraphicsModeControl mode, float constant_alpha,
+      Object image, GraphicsModeControl mode, float constant_alpha,
       float[] constant_color, int texture_width, int texture_height)
       throws VisADException {
   }
@@ -4335,7 +4361,7 @@ System.out.println("adjusted flow values = " + flow_values[0][0] + " " +
   public void texture3DToGroup(Object group, VisADGeometryArray arrayX,
       VisADGeometryArray arrayY, VisADGeometryArray arrayZ,
       VisADGeometryArray arrayXrev, VisADGeometryArray arrayYrev,
-      VisADGeometryArray arrayZrev, BufferedImage[] images,
+      VisADGeometryArray arrayZrev, Object[] images,
       GraphicsModeControl mode, float constant_alpha, float[] constant_color,
       int texture_width, int texture_height, int texture_depth,
       DataRenderer renderer) throws VisADException {
@@ -4344,8 +4370,8 @@ System.out.println("adjusted flow values = " + flow_values[0][0] + " " +
   public void textureStackToGroup(Object group, VisADGeometryArray arrayX,
       VisADGeometryArray arrayY, VisADGeometryArray arrayZ,
       VisADGeometryArray arrayXrev, VisADGeometryArray arrayYrev,
-      VisADGeometryArray arrayZrev, BufferedImage[] imagesX,
-      BufferedImage[] imagesY, BufferedImage[] imagesZ,
+      VisADGeometryArray arrayZrev, Object[] imagesX,
+      Object[] imagesY, Object[] imagesZ,
       GraphicsModeControl mode, float constant_alpha, float[] constant_color,
       int texture_width, int texture_height, int texture_depth,
       DataRenderer renderer) throws VisADException {

@@ -4,33 +4,30 @@ import Jama.Matrix;
 import Jama.LUDecomposition;
 import java.util.Arrays;
 
-public class CubicInterpolator {
+public class CubicInterpolator implements Interpolator {
 
-      LUDecomposition solver;
+      private LUDecomposition solver;
 
-      double[][] solution = null;
+      private double[][] solution = null;
 
-      double x0 = 0;
-      double x1 = 0;
-      double x2 = 0;
-      double x0_last = 0;
-      double x0_save;
+      private double x0 = 0;
+      private double x1 = 0;
+      private double x2 = 0;
+      private double x0_last = 0;
+      private double x0_save;
       
-      float[] values0 = null;
-      float[] values1 = null;
-      float[] values2 = null;
-      float[] values0_last = null;
-      float[] values0_save = null;
+      private float[] values0 = null;
+      private float[] values1 = null;
+      private float[] values2 = null;
+      private float[] values0_last = null;
+      private float[] values0_save = null;
 
-      int numSpatialPts = 1;
+      private int numSpatialPts = 1;
 
-      boolean doIntrp = true;
+      private boolean[] needed = null;
+      private boolean[] computed = null;
       
-      boolean[] needed = null;
-      boolean[] computed = null;
-      
-      public CubicInterpolator(boolean doIntrp, int numSpatialPts) {
-         this.doIntrp = doIntrp;
+      public CubicInterpolator(int numSpatialPts) {
          this.numSpatialPts = numSpatialPts;
          this.solution = new double[4][numSpatialPts];
          this.needed = new boolean[numSpatialPts];
@@ -56,15 +53,6 @@ public class CubicInterpolator {
       }
 
       public void interpolate(double xt, float[] interpValues) {
-         if (!doIntrp) {
-            if (xt == x0) {
-               System.arraycopy(values0, 0, interpValues, 0, numSpatialPts);
-            }
-            else if (xt == x1) {
-               System.arraycopy(values1, 0, interpValues, 0, numSpatialPts);
-            }
-            return;
-         }
          java.util.Arrays.fill(interpValues, Float.NaN);
          
          for (int k=0; k<numSpatialPts; k++) {
@@ -89,10 +77,6 @@ public class CubicInterpolator {
          this.values0_save = values0;
          Arrays.fill(computed, false);
          
-         if (!doIntrp) {
-           return;
-         }
-         
          buildSolver();
       }
  
@@ -105,9 +89,7 @@ public class CubicInterpolator {
                   }
               }
           }
-          if (doIntrp) {
-                getSolution();
-          }
+          getSolution();
       }
       
       private void getSolution() {

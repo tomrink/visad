@@ -701,15 +701,9 @@ public class ShadowImageByRefFunctionTypeJ3D extends ShadowFunctionTypeJ3D {
 
     int texture_width_max = link.getDisplay().getDisplayRenderer().getTextureWidthMax();
     int texture_height_max = link.getDisplay().getDisplayRenderer().getTextureWidthMax();
-    texture_width_max = 4096;
-    texture_height_max = 4096;
-    System.out.println("texture_width_max: "+texture_width_max);
-    System.out.println("texture_height_max: "+texture_height_max);
 
     int texture_width = textureWidth(data_width);
     int texture_height = textureHeight(data_height);
-    System.out.println("texture_width: "+texture_width);
-    System.out.println("texture_height: "+texture_height);
 
     if (reuseImages) {
       if (prevImgNode.numImages != numImages || 
@@ -761,7 +755,6 @@ public class ShadowImageByRefFunctionTypeJ3D extends ShadowFunctionTypeJ3D {
         }
 
     first_time =true; //Ghansham: this variable just indicates to makeColorBytes whether it's the first tile of the image
-    double t0 = System.currentTimeMillis();
     if (isTextureMap) { // linear texture
 
         if (imgNode.getNumTiles() == 1) {
@@ -1014,8 +1007,6 @@ public class ShadowImageByRefFunctionTypeJ3D extends ShadowFunctionTypeJ3D {
             }
 	  }
       }
-      double t1 = System.currentTimeMillis();
-      System.out.println("total time: "+(t1-t0));
 
       cmaps = null;
       first_time = true;

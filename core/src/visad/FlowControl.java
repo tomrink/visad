@@ -4,7 +4,7 @@
 
 /*
 VisAD system for interactive analysis and visualization of numerical
-data.  Copyright (C) 1996 - 2018 Bill Hibbard, Curtis Rueden, Tom
+data.  Copyright (C) 1996 - 2019 Bill Hibbard, Curtis Rueden, Tom
 Rink, Dave Glowacki, Steve Emmerson, Tom Whittaker, Don Murray, and
 Tommy Jasmin.
 
@@ -324,11 +324,11 @@ public abstract class FlowControl extends Control {
     return trajectoryEnabled;
   }
 
-  public TrajectoryParams getTrajectoryParams() {
+  public synchronized TrajectoryParams getTrajectoryParams() {
     return new TrajectoryParams(trajParams);
   }
 
-  public void setTrajectoryParams(TrajectoryParams tParams)
+  public synchronized void setTrajectoryParams(TrajectoryParams tParams)
          throws VisADException, RemoteException {
     if (tParams == null) {
       throw new VisADException("TrajectoryParams can't be null");

@@ -33,6 +33,7 @@ public class VisADImageNode {
    public int numImages;
    public int data_width;
    public int data_height;
+   public int data_depth;
 
    AnimateBehavior animate = null; 
 

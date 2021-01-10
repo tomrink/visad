@@ -1245,6 +1245,13 @@ public class TrajectoryManager {
      return (float) Math.sqrt(x*x + y*y + z*z);
   }
   
+    public static float vecMagSqrd(float[] vec) {
+     float x = vec[0];
+     float y = vec[1];
+     float z = vec[2];
+     return x*x + y*y + z*z;
+  }
+  
   public static double vecMag(double[] vec) {
      double x = vec[0];
      double y = vec[1];
@@ -1266,6 +1273,21 @@ public class TrajectoryManager {
      double b = normal[1];
      double c = normal[2];
      double d = -(a*pt[0] + b*pt[1] + c*pt[2]);
+     
+     coeffs[0] = a;
+     coeffs[1] = b;
+     coeffs[2] = c;
+     coeffs[3] = d;
+     
+     return coeffs;
+  }
+  
+  public static float[] getPlaneCoeffsFromNormalAndPoint(float[] normal, float[] pt) {
+     float[] coeffs = new float[4];
+     float a = normal[0];
+     float b = normal[1];
+     float c = normal[2];
+     float d = -(a*pt[0] + b*pt[1] + c*pt[2]);
      
      coeffs[0] = a;
      coeffs[1] = b;
@@ -1341,6 +1363,44 @@ public class TrajectoryManager {
      
      return P;
   }
+  
+  public static float[] getLinePlaneIntersect(float[] planeCoeffs, float[] uVecLine, float[] linePt) {
+     return getLinePlaneIntersect(planeCoeffs[0], planeCoeffs[1], planeCoeffs[2], planeCoeffs[3], uVecLine, linePt);
+  }
+  
+  public static float[] getLinePlaneIntersect(float a, float b, float c, float d, float[] uVecLine, float[] linePt) {
+     float[] P = new float[3];
+     
+     float t = -(d + a*linePt[0] + b*linePt[1] + c*linePt[2])/(a*uVecLine[0] + b*uVecLine[1] + c*uVecLine[2]);
+     
+     P[0] = linePt[0] + t*uVecLine[0];
+     P[1] = linePt[1] + t*uVecLine[1];
+     P[2] = linePt[2] + t*uVecLine[2];
+     
+     return P;
+  }
+  
+  public static float[] getLineSphereIntersect(float[] center, float radius, float[] origin, float[] uVecLine) {
+     float[] o_c = new float[3];
+     o_c[0] = origin[0] - center[0];
+     o_c[1] = origin[1] - center[1];
+     o_c[2] = origin[2] - center[2];
+     
+     float d1 = -AdotB(uVecLine, o_c);
+     float d2 = (float) Math.sqrt((double)(d1*d1 - (vecMagSqrd(o_c) - radius*radius)));
+     
+     float d_a = d1 - d2;
+     float d_b = d1 + d2;
+     
+     float d = Math.min(d_a, d_b);
+     
+     float[] pt = new float[3];
+     pt[0] = d*uVecLine[0];
+     pt[1] = d*uVecLine[1];
+     pt[2] = d*uVecLine[2];
+      
+     return pt;   
+  }
 
   /**
    * @param T (SxT) right-handed in the plane. Must be 3D unit vectors
@@ -1355,8 +1415,8 @@ public class TrajectoryManager {
      if (rotV == null) rotV = new double[3];
      if (P == null) P = new double[] {0,0,0};
 
-     double s = V[0]*Math.cos(theta) - V[1]*Math.sin(theta); // x
-     double t = V[0]*Math.sin(theta) + V[1]*Math.cos(theta); // y
+     double s = V[0]*Math.cos(Data.DEGREES_TO_RADIANS*theta) - V[1]*Math.sin(Data.DEGREES_TO_RADIANS*theta); // x
+     double t = V[0]*Math.sin(Data.DEGREES_TO_RADIANS*theta) + V[1]*Math.cos(Data.DEGREES_TO_RADIANS*theta); // y
 
      double x = P[0] + s*S[0] + t*T[0];
      double y = P[1] + s*S[1] + t*T[1];
@@ -1367,7 +1427,165 @@ public class TrajectoryManager {
      rotV[2] = z;
 
      return rotV;
-  } 
+  }
+  
+  public static float[] getRotatedVecInPlane(float[] T, float[] S, float[] P, float[] V, float theta, float[] rotV) {
+     if (rotV == null) rotV = new float[3];
+     if (P == null) P = new float[] {0,0,0};
+
+     float s = (float) (V[0]*Math.cos(Data.DEGREES_TO_RADIANS*theta) - V[1]*Math.sin(Data.DEGREES_TO_RADIANS*theta)); // x
+     float t = (float) (V[0]*Math.sin(Data.DEGREES_TO_RADIANS*theta) + V[1]*Math.cos(Data.DEGREES_TO_RADIANS*theta)); // y
+
+     float x = P[0] + s*S[0] + t*T[0];
+     float y = P[1] + s*S[1] + t*T[1];
+     float z = P[2] + s*S[2] + t*T[2];
+
+     rotV[0] = x;
+     rotV[1] = y;
+     rotV[2] = z;
+
+     return rotV;
+  }
+  
+  public static SphericalCoordinateSystem sphereCS;
+  public static float earth_radius = 6378f;
+  static {
+     try {
+         sphereCS = new SphericalCoordinateSystem(RealTupleType.SpatialCartesian3DTuple);
+     }
+     catch (Exception e) {
+     }
+  }
+  
+  public static float[] azimElevRangeToLonLat(float staLon, float staLat, float azim, float elev, float range) throws VisADException {
+     float[] staXYZ = new float[3];
+     float[][] xyz = sphereCS.toReference(new float[][] {{staLat}, {staLon}, {1f}});
+     staXYZ[0] = xyz[0][0];
+     staXYZ[1] = xyz[1][0];
+     staXYZ[2] = xyz[2][0];
+
+     // normal to tangent plane at station location     
+     float[] normal = new float[3];
+     float mag = (float) vecMag(new double[] {staXYZ[0], staXYZ[1], staXYZ[2]});
+     normal[0] = staXYZ[0]/mag;
+     normal[1] = staXYZ[1]/mag;
+     normal[2] = staXYZ[2]/mag;
+     
+     float[] tangetPlaneCoeffs = getPlaneCoeffsFromNormalAndPoint(normal, staXYZ);
+
+     // get the north pointing unit vector in the tangent plane
+     float latN = Math.min(staLat+2, 90);
+     xyz = sphereCS.toReference(new float[][] {{latN}, {staLon}, {1f}});
+     float[] north = new float[] {xyz[0][0], xyz[1][0], xyz[2][0]};
+     mag = (float) vecMag(new double[] {north[0], north[1], north[2]});
+     
+     float[] uvec = new float[] {north[0]/mag, north[1]/mag, north[2]/mag};
+         
+     float[] pt = getLinePlaneIntersect(tangetPlaneCoeffs, uvec, new float[] {0f,0f,0f});
+     
+     float[] uvecNorth = new float[] {(pt[0] - staXYZ[0]), (pt[1] - staXYZ[1]), (pt[2] - staXYZ[2])};
+     mag = vecMag(uvecNorth);
+     uvecNorth[0] = uvecNorth[0]/mag;
+     uvecNorth[1] = uvecNorth[1]/mag;
+     uvecNorth[2] = uvecNorth[2]/mag;
+     //--------------------------------------------------------
+     
+     float[] S = AxB(uvecNorth, normal);
+     mag = vecMag(S);
+     S[0] = S[0]/mag;
+     S[1] = S[1]/mag;
+     S[2] = S[2]/mag;
+     
+     // Transpose north vec, 90-azim counterclockwise rotation
+     float[] rotV = getRotatedVecInPlane(uvecNorth, S, null, new float[] {1f, 0f}, (90f - azim), null);
+     
+     // rotate 'elev' upward
+     rotV = getRotatedVecInPlane(normal, rotV, null, new float[] {1f, 0f}, elev, null);
+     
+     // get range in earth_radius units (KM)
+     range = range/earth_radius;
+     float[] obsVec = new float[] {(staXYZ[0] + range*rotV[0]), (staXYZ[1] + range*rotV[1]), (staXYZ[2] + range*rotV[2])};
+
+     float[][] flts = sphereCS.fromReference(new float[][] {{obsVec[0]}, {obsVec[1]}, {obsVec[2]}});
+     
+     return new float[] {flts[0][0], flts[1][0], flts[2][0]*earth_radius};
+  }
+  
+  public static float[] latLonAltToAzimElevRange(float staLon, float staLat, float lon, float lat, float alt) throws VisADException {
+     float[] staXYZ = new float[3];
+     float[][] xyz = sphereCS.toReference(new float[][] {{staLat}, {staLon}, {1f}});
+     staXYZ[0] = xyz[0][0];
+     staXYZ[1] = xyz[1][0];
+     staXYZ[2] = xyz[2][0];
+     
+     // normal to tangent plane at station location
+     float[] normal = new float[3];
+     float mag = (float) vecMag(new double[] {staXYZ[0], staXYZ[1], staXYZ[2]});
+     normal[0] = staXYZ[0]/mag;
+     normal[1] = staXYZ[1]/mag;
+     normal[2] = staXYZ[2]/mag;
+     
+     float[] tangetPlaneCoeffs = getPlaneCoeffsFromNormalAndPoint(normal, staXYZ);
+     
+     // get the north pointing unit vector in the tangent plane
+     float latN = Math.min(staLat+2, 90);
+     xyz = sphereCS.toReference(new float[][] {{latN}, {staLon}, {1f}});
+     float[] north = new float[] {xyz[0][0], xyz[1][0], xyz[2][0]};
+     mag = (float) vecMag(new double[] {north[0], north[1], north[2]});
+     
+     float[] uvec = new float[] {north[0]/mag, north[1]/mag, north[2]/mag};
+          
+     float[] pt = getLinePlaneIntersect(tangetPlaneCoeffs, uvec, new float[] {0f,0f,0f});
+     
+     float[] uvecNorth = new float[] {(pt[0] - staXYZ[0]), (pt[1] - staXYZ[1]), (pt[2] - staXYZ[2])};
+     mag = vecMag(uvecNorth);
+     uvecNorth[0] = uvecNorth[0]/mag;
+     uvecNorth[1] = uvecNorth[1]/mag;
+     uvecNorth[2] = uvecNorth[2]/mag;
+     //---------------------------------------------------------
+     
+     float[] obsXYZ = new float[3];
+     float radius = alt/earth_radius;
+     xyz = sphereCS.toReference(new float[][] {{lat}, {lon}, {radius}});
+     obsXYZ[0] = xyz[0][0];
+     obsXYZ[1] = xyz[1][0];
+     obsXYZ[2] = xyz[2][0];
+     
+     
+     mag = vecMag(obsXYZ);
+     uvec = new float[] {obsXYZ[0]/mag, obsXYZ[1]/mag, obsXYZ[2]/mag};     
+     pt = getLinePlaneIntersect(tangetPlaneCoeffs, uvec, new float[] {0f,0f,0f});
+     
+     float[] obsViewUvec = new float[] {(pt[0] - staXYZ[0]), (pt[1] - staXYZ[1]), (pt[2] - staXYZ[2])};
+     mag = vecMag(obsViewUvec);
+     obsViewUvec[0] /= mag;
+     obsViewUvec[1] /= mag;
+     obsViewUvec[2] /= mag;
+     
+     uvec[0] = obsXYZ[0] - staXYZ[0];
+     uvec[1] = obsXYZ[1] - staXYZ[1];
+     uvec[2] = obsXYZ[2] - staXYZ[2];
+     mag = vecMag(uvec);
+     float range = mag*earth_radius;
+     uvec[0] /= mag;
+     uvec[1] /= mag;
+     uvec[2] /= mag;
+     
+     float elev = (float) (Data.RADIANS_TO_DEGREES*Math.acos(AdotB(uvec, obsViewUvec)));
+     if (Float.isNaN(elev)) {
+        elev = 0f;
+     }
+     
+     float azim = (float) (Data.RADIANS_TO_DEGREES*Math.acos(AdotB(obsViewUvec, uvecNorth)));
+     if (Float.isNaN(azim)) {
+        azim = 0f;
+     }
+     if (AdotB(AxB(obsViewUvec, uvecNorth), normal) < 0) {
+        azim = 360 - azim;
+     }
+     
+     return new float[] {azim, elev, range};
+  }
   
   public VisADGeometryArray makeGeometry() {
     VisADLineArray array = new VisADLineArray();

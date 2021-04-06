@@ -50,7 +50,6 @@ import javax.media.j3d.TransparencyAttributes;
 
 import visad.BadMappingException;
 import visad.BaseColorControl;
-import visad.CachingCoordinateSystem;
 import visad.CoordinateSystem;
 import visad.Data;
 import visad.DataDisplayLink;
@@ -65,11 +64,9 @@ import visad.FieldImpl;
 import visad.FlatField;
 import visad.Function;
 import visad.GraphicsModeControl;
-import visad.Gridded2DSet;
 import visad.GriddedSet;
 import visad.ImageFlatField;
 import visad.Integer1DSet;
-import visad.InverseLinearScaledCS;
 import visad.Linear1DSet;
 import visad.Linear2DSet;
 import visad.LinearNDSet;
@@ -85,7 +82,6 @@ import visad.ShadowType;
 import visad.Unit;
 import visad.VisADException;
 import visad.VisADQuadArray;
-import visad.VisADTriangleStripArray;
 
 /**
    The ShadowImageFunctionTypeJ3D class shadows the FunctionType class for

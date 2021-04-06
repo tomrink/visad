@@ -33,17 +33,24 @@ import javax.media.j3d.BranchGroup;
 import visad.BadMappingException;
 import visad.CoordinateSystem;
 import visad.CachingCoordinateSystem;
+import visad.ColorAlphaControl;
+import visad.ConstantMap;
 import visad.InverseLinearScaledCS;
 import visad.Data;
 import visad.DataDisplayLink;
+import visad.DataReferenceImpl;
 import visad.Display;
 import visad.DisplayException;
+import visad.DisplayImpl;
 import visad.DisplayRealType;
 import visad.DisplayTupleType;
 import visad.FieldImpl;
 import visad.FlatField;
 import visad.FunctionType;
+import visad.GraphicsModeControl;
 import visad.Gridded2DSet;
+import visad.Integer3DSet;
+import visad.Linear2DSet;
 import visad.MathType;
 import visad.RealTupleType;
 import visad.RealType;
@@ -716,8 +723,105 @@ public class VolumeRendererJ3D extends DefaultRendererJ3D {
   }
   //27FEB2012: Projection Seam Change Bug Fix (ends here)
 
+  public static float[][] buildTable(float[][] table)
+  {
+    int length = table[0].length;
+    for (int i=0; i<length; i++) {
+      float a = ((float) i) / ((float) (table[3].length - 1));
+      table[3][i] = a;
+    }
+    return table;
+  }
 
-//GEOMETRY/COLORBYTE REUSE UTILITY METHODS (ENDS HERE)
+  public static void main(String[] args) throws VisADException, RemoteException {
+    DisplayImpl display = new DisplayImplJ3D("vol rend");
+    RealType xr = RealType.getRealType("xr");
+    RealType yr = RealType.getRealType("yr");
+    RealType zr = RealType.getRealType("zr");
+    RealType wr = RealType.getRealType("wr");
+    RealType[] types3d = {xr, yr, zr};
+    RealTupleType earth_location3d = new RealTupleType(types3d);
+    FunctionType grid_tuple = new FunctionType(earth_location3d, wr);
+
+    // int NX = 32;
+    // int NY = 32;
+    // int NZ = 32;
+    int NX = 35;
+    int NY = 35;
+    int NZ = 35;
+    Integer3DSet set = new Integer3DSet(NX, NY, NZ);
+    FlatField grid3d = new FlatField(grid_tuple, set);
+
+    float[][] values = new float[1][NX * NY * NZ];
+    int k = 0;
+    for (int iz=0; iz<NZ; iz++) {
+      // double z = Math.PI * (-1.0 + 2.0 * iz / (NZ - 1.0));
+      double z = Math.PI * (-1.0 + 2.0 * iz * iz / ((NZ - 1.0)*(NZ - 1.0)) );
+      for (int iy=0; iy<NY; iy++) {
+        double y = -1.0 + 2.0 * iy / (NY - 1.0);
+        for (int ix=0; ix<NX; ix++) {
+          double x = -1.0 + 2.0 * ix / (NX - 1.0);
+          double r = x - 0.5 * Math.cos(z);
+          double s = y - 0.5 * Math.sin(z);
+          double dist = Math.sqrt(r * r + s * s);
+          values[0][k] = (float) ((dist < 0.1) ? 10.0 : 1.0 / dist);
+          k++;
+        }
+      }
+    }
+    grid3d.setSamples(values);
+
+    display.addMap(new ScalarMap(xr, Display.XAxis));
+    display.addMap(new ScalarMap(yr, Display.YAxis));
+    display.addMap(new ScalarMap(zr, Display.ZAxis));
+
+    ScalarMap xrange = new ScalarMap(xr, Display.SelectRange);
+    ScalarMap yrange = new ScalarMap(yr, Display.SelectRange);
+    ScalarMap zrange = new ScalarMap(zr, Display.SelectRange);
+    display.addMap(xrange);
+    display.addMap(yrange);
+    display.addMap(zrange);
+
+    GraphicsModeControl mode = display.getGraphicsModeControl();
+    mode.setScaleEnable(true);
+
+    mode.setTransparencyMode(DisplayImplJ3D.NICEST);
+    mode.setTexture3DMode(GraphicsModeControl.STACK2D);
+
+    // new
+    RealType duh = RealType.getRealType("duh");
+    int NT = 32;
+    Linear2DSet set2 = new Linear2DSet(0.0, (double) NX, NT,
+                                       0.0, (double) NY, NT);
+    RealType[] types2d = {xr, yr};
+    RealTupleType domain2 = new RealTupleType(types2d);
+    FunctionType ftype2 = new FunctionType(domain2, duh);
+    float[][] v2 = new float[1][NT * NT];
+    for (int i=0; i<NT*NT; i++) {
+      v2[0][i] = (i * i) % (NT/2 +3);
+    }
+    // float[][] v2 = {{1.0f,2.0f,3.0f,4.0f}};
+    FlatField field2 = new FlatField(ftype2,set2);
+    field2.setSamples(v2);
+    display.addMap(new ScalarMap(duh, Display.RGB));
+
+    ScalarMap map1color = new ScalarMap(wr, Display.RGBA);
+    display.addMap(map1color);
+
+    ColorAlphaControl control = (ColorAlphaControl) map1color.getControl();
+    control.setTable(buildTable(control.getTable()));
+
+    DataReferenceImpl ref_grid3d = new DataReferenceImpl("ref_grid3d");
+    ref_grid3d.setData(grid3d);
+
+    DataReferenceImpl ref2 = new DataReferenceImpl("ref2");
+    ref2.setData(field2);
+
+    ConstantMap[] cmaps = {new ConstantMap(0.0, Display.TextureEnable)};
+    display.addReference(ref2, cmaps);
+
+    display.addReference(ref_grid3d, null);   
+  }
 
 }
 
